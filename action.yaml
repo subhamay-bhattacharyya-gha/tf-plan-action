@@ -46,13 +46,15 @@ runs:
 
     - name: Print Debug Information
       run: |
-        echo "Terraform Directory: ${{ inputs.terraform-dir }}"
-        echo "S3 Bucket: ${{ inputs.s3-bucket }}"
-        echo "S3 Region: ${{ inputs.s3-region }}"
-        echo "DynamoDB Table: ${{ inputs.dynamodb-table }}"
-        echo "CI Pipeline: ${{ inputs.ci-pipeline }}"
-        echo "-------------- Avaliable Files --------------"
-        ls -alrt *
+        echo "Terraform Directory : ${{ inputs.terraform-dir }}"
+        echo "Working Directory   :${{ github.workspace }}/${{ inputs.terraform-dir }}"
+        echo "S3 Bucket           : ${{ inputs.s3-bucket }}"
+        echo "S3 Region           : ${{ inputs.s3-region }}"
+        echo "DynamoDB Table      : ${{ inputs.dynamodb-table }}"
+        echo "CI Pipeline         : ${{ inputs.ci-pipeline }}"
+        echo "-------------- TF Var File --------------"
+        cat ${{ github.workspace }}/${{ inputs.terraform-dir }}/${{ inputs.tf-vars-file }}
+        echo "-------------- TF Var File --------------"
       shell: bash
 
 
@@ -72,6 +74,7 @@ runs:
 
     - name: Terraform Init with S3 Backend
       run: |
+        cd ${{ github.workspace }}/${{ inputs.terraform-directory }}
         terraform init -input=false \
           -backend-config="bucket=${{ inputs.s3-bucket }}" \
           -backend-config="key=${{ steps.key.outputs.s3_key }}" \
@@ -88,7 +91,7 @@ runs:
         echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
 
-        if [ -n "${{ inputs.tf-vars-file }}" ]; then
+        if [ -f "${{ inputs.tf-vars-file }}" ]; then
           terraform plan -input=false -out=$PLAN_FILE -var-file=${{ inputs.tf-vars-file }} | tee plan.txt
         else
           terraform plan -input=false -out=$PLAN_FILE | tee plan.txt
