@@ -51,8 +51,10 @@ runs:
         echo "S3 Region: ${{ inputs.s3-region }}"
         echo "DynamoDB Table: ${{ inputs.dynamodb-table }}"
         echo "CI Pipeline: ${{ inputs.ci-pipeline }}"
+        echo "-------------- Avaliable Files --------------"
+        ls -alrt *
       shell: bash
-      
+
 
     - name: Compute Backend Key from Repository Name
       id: key
