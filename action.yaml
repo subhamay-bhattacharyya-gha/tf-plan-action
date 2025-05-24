@@ -86,3 +86,4 @@ runs:
         path: |
           ${{ inputs.working-directory }}/tfplan.out
           ${{ inputs.working-directory }}/plan.txt
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
