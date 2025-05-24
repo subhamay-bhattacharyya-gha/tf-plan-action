@@ -54,6 +54,7 @@ runs:
         fi
 
         echo "Computed key: $state_key"
+        echo "working-directory=${{ github.workspace }}/${{ inputs.terraform-directory }}" >> $GITHUB_OUTPUT
         echo "s3_key=$state_key" >> $GITHUB_OUTPUT
       shell: bash
 
