@@ -11,7 +11,7 @@ inputs:
   tf-vars-file:
     description: "Optional Terraform variable file"
     required: false
-    default: ""
+    default: "terraform.tfvars"
 
   s3-bucket:
     description: "S3 bucket for Terraform backend"
@@ -44,20 +44,6 @@ runs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
-    - name: Print Debug Information
-      run: |
-        echo "Terraform Directory : ${{ inputs.terraform-dir }}"
-        echo "Working Directory   :${{ github.workspace }}/${{ inputs.terraform-dir }}"
-        echo "S3 Bucket           : ${{ inputs.s3-bucket }}"
-        echo "S3 Region           : ${{ inputs.s3-region }}"
-        echo "DynamoDB Table      : ${{ inputs.dynamodb-table }}"
-        echo "CI Pipeline         : ${{ inputs.ci-pipeline }}"
-        echo "-------------- TF Var File --------------"
-        cat ${{ github.workspace }}/${{ inputs.terraform-dir }}/${{ inputs.tf-vars-file }}
-        echo "-------------- TF Var File --------------"
-      shell: bash
-
-
     - name: Compute Backend Key from Repository Name
       id: key
       run: |
@@ -66,16 +52,11 @@ runs:
         else
           state_key="${{ github.repository }}/terraform.tfstate"
         fi
-
-        echo "Computed key: $state_key"
-        echo "working-directory=${{ github.workspace }}/${{ inputs.terraform-directory }}" >> $GITHUB_OUTPUT
         echo "s3_key=$state_key" >> $GITHUB_OUTPUT
       shell: bash
 
     - name: Terraform Init with S3 Backend
       run: |
-        # cd ${{ github.workspace }}/${{ inputs.terraform-dir }}
-        # pwd
         terraform init -input=false \
           -backend-config="bucket=${{ inputs.s3-bucket }}" \
           -backend-config="key=${{ steps.key.outputs.s3_key }}" \
@@ -91,13 +72,7 @@ runs:
         PLAN_FILE=tfplan.out
         echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-
-        if [ -f "${{ inputs.tf-vars-file }}" ]; then
-          terraform plan -input=false -out=$PLAN_FILE -var-file=${{ inputs.tf-vars-file }} | tee plan.txt
-        else
-          terraform plan -input=false -out=$PLAN_FILE | tee plan.txt
-        fi
-
+        terraform plan -input=false -out=$PLAN_FILE -var-file=${{ inputs.tf-vars-file }} | tee plan.txt
         echo "\`\`\`hcl" >> $GITHUB_STEP_SUMMARY
         cat plan.txt >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
