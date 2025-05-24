@@ -69,12 +69,13 @@ runs:
     - name: Terraform Plan and Save Output
       id: plan
       run: |
-        PLAN_FILE=tfplan.out
+        PLAN_FILE=tfplan
         echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        terraform plan -input=false -out=$PLAN_FILE -var-file=${{ inputs.tf-vars-file }} | tee $PLAN_FILE
+        terraform plan -input=false -out=${PLAN_FILE}.out -var-file=${{ inputs.tf-vars-file }}
+        terraform show -no-color ${PLAN_FILE}.out > ${PLAN_FILE}.txt
         echo "\`\`\`hcl" >> $GITHUB_STEP_SUMMARY
-        cat $PLAN_FILE >> $GITHUB_STEP_SUMMARY
+        cat ${PLAN_FILE}.txt >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
