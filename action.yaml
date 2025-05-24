@@ -44,6 +44,16 @@ runs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
+    - name: Print Debug Information
+      run: |
+        echo "Terraform Directory: ${{ inputs.terraform-dir }}"
+        echo "S3 Bucket: ${{ inputs.s3-bucket }}"
+        echo "S3 Region: ${{ inputs.s3-region }}"
+        echo "DynamoDB Table: ${{ inputs.dynamodb-table }}"
+        echo "CI Pipeline: ${{ inputs.ci-pipeline }}"
+      shell: bash
+      
+
     - name: Compute Backend Key from Repository Name
       id: key
       run: |
