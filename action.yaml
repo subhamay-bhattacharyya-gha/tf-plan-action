@@ -74,7 +74,7 @@ runs:
       run: |
         terraform init -input=false \
           -backend-config="bucket=${{ inputs.s3-bucket }}" \
-          -backend-config="key=${{ steps.s3_key.outputs.key }}" \
+          -backend-config="key=${{ steps.key.outputs.s3_key }}" \
           -backend-config="region=${{ inputs.s3-region }}" \
           -backend-config="encrypt=true" \
           -backend-config="dynamodb_table=${{ inputs.dynamodb-table }}"
