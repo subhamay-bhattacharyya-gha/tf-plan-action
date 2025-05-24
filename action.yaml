@@ -74,7 +74,8 @@ runs:
 
     - name: Terraform Init with S3 Backend
       run: |
-        cd ${{ github.workspace }}/${{ inputs.terraform-directory }}
+        # cd ${{ github.workspace }}/${{ inputs.terraform-dir }}
+        # pwd
         terraform init -input=false \
           -backend-config="bucket=${{ inputs.s3-bucket }}" \
           -backend-config="key=${{ steps.key.outputs.s3_key }}" \
@@ -82,7 +83,7 @@ runs:
           -backend-config="encrypt=true" \
           -backend-config="dynamodb_table=${{ inputs.dynamodb-table }}"
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.terraform-directory }}
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
 
     - name: Terraform Plan and Save Output
       id: plan
@@ -101,7 +102,7 @@ runs:
         cat plan.txt >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.terraform-directory }}
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
 
     - name: Upload Plan Output as Artifact
       uses: actions/upload-artifact@v4
