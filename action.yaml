@@ -72,9 +72,9 @@ runs:
         PLAN_FILE=tfplan.out
         echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        terraform plan -input=false -out=$PLAN_FILE -var-file=${{ inputs.tf-vars-file }} | tee plan.txt
+        terraform plan -input=false -out=$PLAN_FILE -var-file=${{ inputs.tf-vars-file }} | tee $PLAN_FILE
         echo "\`\`\`hcl" >> $GITHUB_STEP_SUMMARY
-        cat plan.txt >> $GITHUB_STEP_SUMMARY
+        cat $PLAN_FILE >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
