@@ -1,44 +1,89 @@
-name: 'Action Name'
-description: 'Action Description'
+name: "Terraform Plan"
+description: "Run terraform plan with support for S3 backend and artifact upload."
+
 
 inputs:
-  input-1:
-    description: Input description.
+  terraform-dir:
+    description: "Path to the Terraform configuration"
     required: false
-    default: default-value
-  input-2:
-    description: Input description.
+    default: "tf"
+
+  tf-vars-file:
+    description: "Optional Terraform variable file"
     required: false
-    default: default-value
-  input-3:
-    description: Input description.
-    required: false
-    default: default-value
-  github-token:
-    description: 'GitHub token'
+    default: "terraform.tfvars"
+
+  s3-bucket:
+    description: "S3 bucket for Terraform backend"
     required: true
 
+  s3-region:
+    description: "AWS region where the S3 bucket is located"
+    required: true
+
+  dynamodb-table:
+    description: "DynamoDB table name for state locking"
+    required: true
+
+  ci-pipeline:
+    description: "Set to true to use commit SHA in backend key"
+    required: false
+    default: "false"  # Boolean-like string
+
+outputs:
+  plan-status:
+    description: "Result of terraform plan"
+    value: ${{ steps.plan.outcome }}
+
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: 3.x
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - name: Sample step to call GitHub API
-      shell: bash
-      env:
-        GITHUB_TOKEN: ${{ inputs.github-token }}
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Compute Backend Key from Repository Name
+      id: key
       run: |
-        ISSUE_NUMBER="${{ github.event.issue.number }}"
-        REPO="${{ github.repository }}"
-        OWNER=$(echo $REPO | cut -d'/' -f1)
-        BRANCH_NAME="${{ steps.create-branch.outputs.branch-name }}"
-        COMMENT_BODY="Branch [$BRANCH_NAME](https://github.com/$OWNER/$REPO/tree/$BRANCH_NAME) created 🚀"
+        if [[ "${{ inputs.ci-pipeline }}" == "true" ]]; then
+          state_key="${{ github.repository }}/${{ github.sha }}/terraform.tfstate"
+        else
+          state_key="${{ github.repository }}/terraform.tfstate"
+        fi
+        echo "s3_key=$state_key" >> $GITHUB_OUTPUT
+      shell: bash
 
-        curl -s -X POST \
-          -H "Authorization: token $GITHUB_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d "{\"body\": \"$COMMENT_BODY\"}" \
-          https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments
+    - name: Terraform Init with S3 Backend
+      run: |
+        terraform init -input=false \
+          -backend-config="bucket=${{ inputs.s3-bucket }}" \
+          -backend-config="key=${{ steps.key.outputs.s3_key }}" \
+          -backend-config="region=${{ inputs.s3-region }}" \
+          -backend-config="encrypt=true" \
+          -backend-config="dynamodb_table=${{ inputs.dynamodb-table }}"
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
+
+    - name: Terraform Plan and Save Output
+      id: plan
+      run: |
+        PLAN_FILE=tfplan
+        echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        terraform plan -input=false -out=${PLAN_FILE}.out -var-file=${{ inputs.tf-vars-file }}
+        terraform show -no-color ${PLAN_FILE}.out > ${PLAN_FILE}.txt
+        echo "\`\`\`hcl" >> $GITHUB_STEP_SUMMARY
+        cat ${PLAN_FILE}.txt >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
+
+    - name: Upload Plan Output as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: terraform-plan
+        path: |
+          ${{ github.workspace }}/${{ inputs.terraform-dir }}/tfplan.out
+
