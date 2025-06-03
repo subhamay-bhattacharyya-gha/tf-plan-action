@@ -70,7 +70,6 @@ runs:
           state_key="${{ github.repository }}/terraform.tfstate"
         fi
         echo "s3_key=$state_key" >> $GITHUB_OUTPUT
-      shell: bash
 
     - name: Terraform Init with S3 Backend
       id: tf-init
