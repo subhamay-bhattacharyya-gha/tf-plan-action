@@ -3,15 +3,16 @@ description: "Run terraform plan with support for S3 backend and artifact upload
 
 
 inputs:
+  release-tag:
+    description: 'Optional release tag to checkout'
+    required: false
+    type: string
+    default: ''
+
   terraform-dir:
     description: "Path to the Terraform configuration"
     required: false
     default: "tf"
-
-  tf-vars-file:
-    description: "Optional Terraform variable file"
-    required: false
-    default: "terraform.tfvars"
 
   s3-bucket:
     description: "S3 bucket for Terraform backend"
@@ -21,9 +22,20 @@ inputs:
     description: "AWS region where the S3 bucket is located"
     required: true
 
-  dynamodb-table:
-    description: "DynamoDB table name for state locking"
-    required: true
+  tf-plan-file:
+    description: "File to save the Terraform plan output"
+    required: false
+    default: "tfplan"  
+
+  tf-vars-file:
+    description: "Optional Terraform variable file"
+    required: false
+    default: "terraform.tfvars"
+
+  tf-plan-name:
+    description: "Name of the Terraform plan file"
+    required: false
+    default: "terraform-plan"
 
   ci-pipeline:
     description: "Set to true to use commit SHA in backend key"
@@ -40,12 +52,16 @@ runs:
   steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+          ref: ${{ inputs.release_tag || github.ref_name }} 
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
     - name: Compute Backend Key from Repository Name
       id: key
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
       run: |
         if [[ "${{ inputs.ci-pipeline }}" == "true" ]]; then
           state_key="${{ github.repository }}/${{ github.sha }}/terraform.tfstate"
@@ -53,9 +69,11 @@ runs:
           state_key="${{ github.repository }}/terraform.tfstate"
         fi
         echo "s3_key=$state_key" >> $GITHUB_OUTPUT
-      shell: bash
 
     - name: Terraform Init with S3 Backend
+      id: tf-init
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
       run: |
         terraform init -input=false \
           -backend-config="bucket=${{ inputs.s3-bucket }}" \
@@ -63,27 +81,25 @@ runs:
           -backend-config="region=${{ inputs.s3-region }}" \
           -backend-config="encrypt=true" \
           -backend-config="dynamodb_table=${{ inputs.dynamodb-table }}"
-      shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
 
     - name: Terraform Plan and Save Output
-      id: plan
-      run: |
-        PLAN_FILE=tfplan
-        echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        terraform plan -input=false -out=${PLAN_FILE}.out -var-file=${{ inputs.tf-vars-file }}
-        terraform show -no-color ${PLAN_FILE}.out > ${PLAN_FILE}.txt
-        echo "\`\`\`hcl" >> $GITHUB_STEP_SUMMARY
-        cat ${PLAN_FILE}.txt >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+      id: tf-plan
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
+      run: |
+        echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        terraform plan -input=false -out=${{ inputs.tf-plan-file }}.out -var-file=${{ inputs.tf-vars-file }}
+        terraform show -no-color ${{ inputs.tf-plan-file }}.out > ${{ inputs.tf-plan-file }}.txt
+        echo "\`\`\`hcl" >> $GITHUB_STEP_SUMMARY
+        cat ${{ inputs.tf-plan-file }}.txt >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
 
     - name: Upload Plan Output as Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: terraform-plan
+        name: ${{ inputs.tf-plan-name }}
         path: |
-          ${{ github.workspace }}/${{ inputs.terraform-dir }}/tfplan.out
+          ${{ github.workspace }}/${{ inputs.terraform-dir }}/${{ inputs.tf-plan-file }}.out
 
