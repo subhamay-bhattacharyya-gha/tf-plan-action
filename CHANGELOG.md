@@ -1,3 +1,13 @@
+## [1.0.1](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.0.0...v1.0.1) (2025-06-03)
+
+
+### Bug Fixes
+
+* Refactor inputs for Terraform action to remove DynamoDB table and add release tag ([fff23ef](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/fff23ef72d5ad5304453df0d22f6f69c101c5848))
+* Remove unnecessary shell declaration for state key computation step ([5313dd2](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/5313dd2e7026c431ebda65412ef7bf5689ecbd23))
+* Rename output ID for backend key computation and update backend configuration to use DynamoDB table ([2cb9075](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/2cb90755318e1c70a34a329daed34b59cee8349f))
+* Update input parameter names and restructure Terraform action for clarity ([5099cc7](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/5099cc7cf71c75104a8fb69084ee4147e37744a4))
+
 # 1.0.0 (2025-05-24)
 
 
