@@ -59,11 +59,10 @@ runs:
       uses: hashicorp/setup-terraform@v3
 
     - name: Compute Backend Key from Repository Name
-      id: tf-state-key
+      id: key
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
       run: |
-
         if [[ "${{ inputs.ci-pipeline }}" == "true" ]]; then
           state_key="${{ github.repository }}/${{ github.sha }}/terraform.tfstate"
         else
@@ -81,7 +80,7 @@ runs:
           -backend-config="key=${{ steps.key.outputs.s3_key }}" \
           -backend-config="region=${{ inputs.s3-region }}" \
           -backend-config="encrypt=true" \
-          -backend-config="use_lockfile=true"
+          -backend-config="dynamodb_table=${{ inputs.dynamodb-table }}"
 
     - name: Terraform Plan and Save Output
       id: tf-plan
