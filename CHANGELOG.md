@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.0.1...v1.0.2) (2025-06-19)
+
+
+### Bug Fixes
+
+* Update input descriptions and restructure Terraform action for clarity ([01ea45e](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/01ea45e860bfd96b575760c3150891c4037f3103))
+
 ## [1.0.1](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.0.0...v1.0.1) (2025-06-03)
 
 
