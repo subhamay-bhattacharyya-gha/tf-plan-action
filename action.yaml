@@ -112,7 +112,7 @@ runs:
 
     - name: Upload Plan Output as Artifact
       id: upload-plan-artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ inputs.tf-plan-name }}
         path: |
