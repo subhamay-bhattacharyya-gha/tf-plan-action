@@ -3,6 +3,7 @@ terraform {
   
   backend "remote" {
     # Backend configuration will be provided by the GitHub Action
+    # The action will create a backend.hcl file with:
     # organization = "your-tfc-organization"
     # workspaces {
     #   name = "your-workspace-name"

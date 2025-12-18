@@ -157,15 +157,26 @@ runs:
           -backend-config="encrypt=true" \
           -backend-config="use_lockfile=true"
 
+    - name: Create Terraform Cloud Backend Configuration
+      id: create-tfc-backend-config
+      if: inputs.backend-type == 'remote'
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
+      run: |
+        cat > backend.hcl << EOF
+        organization = "${{ inputs.tfc-organization }}"
+        workspaces {
+          name = "${{ inputs.tfc-workspace }}"
+        }
+        EOF
+
     - name: Initialize Terraform with HCP Terraform Cloud Backend
       id: terraform-init-remote
       if: inputs.backend-type == 'remote'
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
       run: |
-        terraform init -input=false \
-          -backend-config="organization=${{ inputs.tfc-organization }}" \
-          -backend-config="workspaces=[{name=\"${{ inputs.tfc-workspace }}\"}]"
+        terraform init -input=false -backend-config=backend.hcl
 
     - name: Terraform Plan and Save Output
       id: tf-plan
@@ -188,9 +199,11 @@ runs:
         path: |
           ${{ github.workspace }}/${{ inputs.terraform-dir }}/${{ inputs.tf-plan-file }}.out
 
-    - name: Cleanup Terraform Cloud Credentials
-      id: cleanup-tfc-credentials
+    - name: Cleanup Terraform Cloud Credentials and Config
+      id: cleanup-tfc-files
       if: always() && inputs.backend-type == 'remote'
       shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
       run: |
         rm -f ~/.terraform.d/credentials.tfrc.json
+        rm -f backend.hcl
