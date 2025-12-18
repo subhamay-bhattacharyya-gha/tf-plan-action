@@ -77,14 +77,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Configure GCP Authentication (WIF)
-      id: gcp-auth
-      if: inputs.gcp-wif-provider != '' && inputs.gcp-service-account != ''
-      uses: google-github-actions/auth@v2
-      with:
-        workload_identity_provider: ${{ inputs.gcp-wif-provider }}
-        service_account: ${{ inputs.gcp-service-account }}
-
     - name: Set Checkout Ref
       id: set-ref
       shell: bash
@@ -100,6 +92,14 @@ runs:
       uses: actions/checkout@v6
       with:
         ref: ${{ steps.set-ref.outputs.ref }}
+
+    - name: Configure GCP Authentication (WIF)
+      id: gcp-auth
+      if: inputs.gcp-wif-provider != '' && inputs.gcp-service-account != ''
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ inputs.gcp-wif-provider }}
+        service_account: ${{ inputs.gcp-service-account }}
 
     - name: Setup Terraform
       id: setup-terraform
@@ -166,8 +166,6 @@ runs:
           -backend-config="region=${{ inputs.s3-region }}" \
           -backend-config="encrypt=true" \
           -backend-config="use_lockfile=true"
-
-
 
     - name: Initialize Terraform with HCP Terraform Cloud Backend
       id: terraform-init-remote
