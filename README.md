@@ -38,15 +38,13 @@ A GitHub composite action to run `terraform plan` with support for S3 backend, H
 | `s3-bucket`       | S3 bucket used for Terraform remote state                | Yes*     | —         |
 | `s3-region`       | AWS region for the S3 backend                            | Yes*     | —         |
 
-### HCP Terraform Cloud Inputs (required when `backend-type` is `remote`)
+### HCP Terraform Cloud Inputs (when `backend-type` is `remote`)
 
 | Name              | Description                                              | Required | Default   |
 |-------------------|----------------------------------------------------------|----------|-----------|
-| `tfc-organization`| HCP Terraform Cloud organization name                    | Yes*     | —         |
-| `tfc-workspace`   | HCP Terraform Cloud workspace name                       | Yes*     | —         |
-| `tfc-token`       | HCP Terraform Cloud API token (use secrets)              | Yes*     | —         |
+| `tfc-token`       | HCP Terraform Cloud API token (use secrets)              | Yes      | —         |
 
-*Required only when the corresponding backend type is selected.
+**Note**: Backend configuration (organization and workspace) should be defined in your Terraform files.
 
 ---
 
@@ -84,6 +82,21 @@ jobs:
 
 ### Using HCP Terraform Cloud
 
+Configure your backend in your Terraform files (e.g., `backend.tf` or `main.tf`):
+
+```hcl
+terraform {
+  cloud {
+    organization = "your-organization"
+    workspaces {
+      name = "your-workspace"
+    }
+  }
+}
+```
+
+Then use the action:
+
 ```yaml
 name: Terraform Plan with HCP Terraform Cloud
 
@@ -98,8 +111,6 @@ jobs:
         with:
           terraform-dir: infrastructure/
           backend-type: remote
-          tfc-organization: my-org
-          tfc-workspace: my-workspace
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           tf-vars-file: production.tfvars
 ```
@@ -112,13 +123,12 @@ jobs:
    - Go to User Settings → Tokens
    - Create a new API token
    - Add it as a repository secret named `TFC_API_TOKEN`
-4. **Configure Your Terraform Code**: Ensure your Terraform configuration includes a `terraform` block with the `remote` backend:
+4. **Configure Your Terraform Code**: Your Terraform configuration should have a basic `terraform` block. The action will automatically inject the HCP Terraform Cloud configuration:
 
 ```hcl
 terraform {
-  backend "remote" {
-    # Configuration will be provided by the action
-  }
+  required_version = ">= 1.0"
+  # HCP Terraform Cloud configuration will be injected by the action
 }
 ```
 

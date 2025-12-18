@@ -38,9 +38,8 @@ terraform {
 **After (HCP Terraform Cloud):**
 ```hcl
 terraform {
-  backend "remote" {
-    # Configuration will be provided by the GitHub Action
-  }
+  required_version = ">= 1.0"
+  # HCP Terraform Cloud configuration will be injected by the GitHub Action
 }
 ```
 

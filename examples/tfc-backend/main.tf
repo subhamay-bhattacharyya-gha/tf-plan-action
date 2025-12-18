@@ -1,13 +1,11 @@
 terraform {
   required_version = ">= 1.0"
   
-  backend "remote" {
-    # Backend configuration will be provided by the GitHub Action
-    # The action will create a backend.hcl file with:
-    # organization = "your-tfc-organization"
-    # workspaces {
-    #   name = "your-workspace-name"
-    # }
+  cloud {
+    organization = "example-org"
+    workspaces {
+      name = "example-workspace"
+    }
   }
 
   required_providers {

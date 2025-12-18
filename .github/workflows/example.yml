@@ -38,7 +38,5 @@ jobs:
         with:
           terraform-dir: examples/tfc-backend
           backend-type: remote
-          tfc-organization: ${{ secrets.TFC_ORGANIZATION }}
-          tfc-workspace: ${{ secrets.TFC_WORKSPACE }}
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           tf-vars-file: terraform.tfvars
