@@ -16,6 +16,8 @@ jobs:
   terraform-plan-s3:
     if: github.event.inputs.backend-type == 's3'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     name: Terraform Plan with S3 Backend
     steps:
       - name: Run Terraform Plan with S3
