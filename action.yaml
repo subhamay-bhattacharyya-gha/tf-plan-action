@@ -1,5 +1,5 @@
 name: "Terraform Plan"
-description: "Run terraform plan with support for S3 backend and artifact upload."
+description: "Run terraform plan with support for S3 backend, HCP Terraform Cloud, and artifact upload."
 
 inputs:
   terraform-dir:
@@ -20,14 +20,37 @@ inputs:
     type: string
     default: "false"
 
+  backend-type:
+    description: "Backend type to use: 's3' for AWS S3 or 'remote' for HCP Terraform Cloud."
+    required: false
+    type: string
+    default: "s3"
+
+  # S3 Backend Inputs
   s3-bucket:
-    description: "Name of the S3 bucket used as the backend for storing the Terraform state file."
-    required: true
+    description: "Name of the S3 bucket used as the backend for storing the Terraform state file. Required when backend-type is 's3'."
+    required: false
     type: string
 
   s3-region:
-    description: "AWS region where the S3 backend bucket is located (e.g., us-east-1, eu-west-1)."
-    required: true
+    description: "AWS region where the S3 backend bucket is located (e.g., us-east-1, eu-west-1). Required when backend-type is 's3'."
+    required: false
+    type: string
+
+  # HCP Terraform Cloud Inputs
+  tfc-organization:
+    description: "HCP Terraform Cloud organization name. Required when backend-type is 'remote'."
+    required: false
+    type: string
+
+  tfc-workspace:
+    description: "HCP Terraform Cloud workspace name. Required when backend-type is 'remote'."
+    required: false
+    type: string
+
+  tfc-token:
+    description: "HCP Terraform Cloud API token. Should be passed as a secret. Required when backend-type is 'remote'."
+    required: false
     type: string
 
   tf-plan-name:
@@ -73,8 +96,44 @@ runs:
       id: setup-terraform
       uses: hashicorp/setup-terraform@v3
 
+    - name: Validate Backend Configuration
+      id: validate-backend
+      shell: bash
+      run: |
+        if [[ "${{ inputs.backend-type }}" == "s3" ]]; then
+          if [[ -z "${{ inputs.s3-bucket }}" || -z "${{ inputs.s3-region }}" ]]; then
+            echo "Error: s3-bucket and s3-region are required when backend-type is 's3'"
+            exit 1
+          fi
+        elif [[ "${{ inputs.backend-type }}" == "remote" ]]; then
+          if [[ -z "${{ inputs.tfc-organization }}" || -z "${{ inputs.tfc-workspace }}" || -z "${{ inputs.tfc-token }}" ]]; then
+            echo "Error: tfc-organization, tfc-workspace, and tfc-token are required when backend-type is 'remote'"
+            exit 1
+          fi
+        else
+          echo "Error: backend-type must be either 's3' or 'remote'"
+          exit 1
+        fi
+
+    - name: Setup Terraform Cloud Credentials
+      id: setup-tfc-credentials
+      if: inputs.backend-type == 'remote'
+      shell: bash
+      run: |
+        mkdir -p ~/.terraform.d
+        cat > ~/.terraform.d/credentials.tfrc.json << EOF
+        {
+          "credentials": {
+            "app.terraform.io": {
+              "token": "${{ inputs.tfc-token }}"
+            }
+          }
+        }
+        EOF
+
     - name: Generate Terraform State Key
       id: generate-tfstate-key
+      if: inputs.backend-type == 's3'
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
       run: |
@@ -87,6 +146,7 @@ runs:
 
     - name: Initialize Terraform with S3 Backend
       id: terraform-init-s3
+      if: inputs.backend-type == 's3'
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
       run: |
@@ -96,6 +156,16 @@ runs:
           -backend-config="region=${{ inputs.s3-region }}" \
           -backend-config="encrypt=true" \
           -backend-config="use_lockfile=true"
+
+    - name: Initialize Terraform with HCP Terraform Cloud Backend
+      id: terraform-init-remote
+      if: inputs.backend-type == 'remote'
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
+      run: |
+        terraform init -input=false \
+          -backend-config="organization=${{ inputs.tfc-organization }}" \
+          -backend-config="workspaces=[{name=\"${{ inputs.tfc-workspace }}\"}]"
 
     - name: Terraform Plan and Save Output
       id: tf-plan
@@ -117,3 +187,10 @@ runs:
         name: ${{ inputs.tf-plan-name }}
         path: |
           ${{ github.workspace }}/${{ inputs.terraform-dir }}/${{ inputs.tf-plan-file }}.out
+
+    - name: Cleanup Terraform Cloud Credentials
+      id: cleanup-tfc-credentials
+      if: always() && inputs.backend-type == 'remote'
+      shell: bash
+      run: |
+        rm -f ~/.terraform.d/credentials.tfrc.json
