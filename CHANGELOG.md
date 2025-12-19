@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.1.0...v1.2.0) (2025-12-19)
+
+
+### Features
+
+* **cloud-provider:** add multi-cloud authentication support for AWS and Azure ([05412be](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/05412be17f97d97b38209c891ca1d1903da5f104))
+
 # [1.1.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.0.2...v1.1.0) (2025-12-19)
 
 
