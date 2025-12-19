@@ -1,3 +1,18 @@
+# [1.1.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.0.2...v1.1.0) (2025-12-19)
+
+
+### Bug Fixes
+
+* update Node.js version and refine permissions in release workflow ([851deba](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/851debac0d36832c854d18a0deb5d0a244e8418e))
+
+
+### Features
+
+* add HCP Terraform Cloud backend support and examples ([eb42a3d](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/eb42a3d7ab2a40f26acb2e2a02f215dd3754cec4))
+* **github-actions:** add GCP Workload Identity Federation support ([3c68f6d](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/3c68f6d645b601d3ad28bb30fcaf3fb21f4b8443))
+* **tfc-backend:** improve Terraform Cloud backend configuration handling ([86b2e45](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/86b2e4567b0f1ef9ac8dae3da279594f0ac3a48b))
+* **tfc-backend:** simplify HCP Terraform Cloud configuration ([c42c1ca](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/c42c1cafc55bb98162add4d332d800beb5b14202))
+
 ## [1.0.2](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.0.1...v1.0.2) (2025-06-19)
 
 
