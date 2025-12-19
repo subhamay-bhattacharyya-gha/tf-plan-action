@@ -26,6 +26,11 @@ inputs:
     type: string
     default: "s3"
 
+  cloud-provider:
+    description: "Cloud service provider for authentication: 'aws', 'gcp', or 'azure'."
+    required: true
+    type: string
+
   # S3 Backend Inputs
   s3-bucket:
     description: "Name of the S3 bucket used as the backend for storing the Terraform state file. Required when backend-type is 's3'."
@@ -43,14 +48,41 @@ inputs:
     required: false
     type: string
 
+  # AWS Authentication Inputs
+  aws-region:
+    description: "AWS region for authentication. Required when cloud-provider is 'aws'."
+    required: false
+    type: string
+
+  aws-role-to-assume:
+    description: "AWS IAM role ARN to assume. Required when cloud-provider is 'aws'."
+    required: false
+    type: string
+
   # GCP Authentication Inputs
   gcp-wif-provider:
-    description: "GCP Workload Identity Federation provider. Required for GCP authentication."
+    description: "GCP Workload Identity Federation provider. Required when cloud-provider is 'gcp'."
     required: false
     type: string
 
   gcp-service-account:
-    description: "GCP service account email for authentication. Required for GCP authentication."
+    description: "GCP service account email for authentication. Required when cloud-provider is 'gcp'."
+    required: false
+    type: string
+
+  # Azure Authentication Inputs
+  azure-client-id:
+    description: "Azure client ID for authentication. Required when cloud-provider is 'azure'."
+    required: false
+    type: string
+
+  azure-tenant-id:
+    description: "Azure tenant ID for authentication. Required when cloud-provider is 'azure'."
+    required: false
+    type: string
+
+  azure-subscription-id:
+    description: "Azure subscription ID for authentication. Required when cloud-provider is 'azure'."
     required: false
     type: string
 
@@ -93,22 +125,40 @@ runs:
       with:
         ref: ${{ steps.set-ref.outputs.ref }}
 
+    - name: Configure AWS Authentication (OIDC)
+      id: aws-auth
+      if: inputs.cloud-provider == 'aws'
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-to-assume }}
+        aws-region: ${{ inputs.aws-region }}
+
     - name: Configure GCP Authentication (WIF)
       id: gcp-auth
-      if: inputs.gcp-wif-provider != '' && inputs.gcp-service-account != ''
+      if: inputs.cloud-provider == 'gcp'
       uses: google-github-actions/auth@v2
       with:
         workload_identity_provider: ${{ inputs.gcp-wif-provider }}
         service_account: ${{ inputs.gcp-service-account }}
 
+    - name: Configure Azure Authentication (OIDC)
+      id: azure-auth
+      if: inputs.cloud-provider == 'azure'
+      uses: azure/login@v2
+      with:
+        client-id: ${{ inputs.azure-client-id }}
+        tenant-id: ${{ inputs.azure-tenant-id }}
+        subscription-id: ${{ inputs.azure-subscription-id }}
+
     - name: Setup Terraform
       id: setup-terraform
       uses: hashicorp/setup-terraform@v3
 
-    - name: Validate Backend Configuration
-      id: validate-backend
+    - name: Validate Configuration
+      id: validate-config
       shell: bash
       run: |
+        # Validate backend configuration
         if [[ "${{ inputs.backend-type }}" == "s3" ]]; then
           if [[ -z "${{ inputs.s3-bucket }}" || -z "${{ inputs.s3-region }}" ]]; then
             echo "Error: s3-bucket and s3-region are required when backend-type is 's3'"
@@ -124,6 +174,32 @@ runs:
           echo "Error: backend-type must be either 's3' or 'remote'"
           exit 1
         fi
+
+        # Validate cloud provider configuration
+        case "${{ inputs.cloud-provider }}" in
+          "aws")
+            if [[ -z "${{ inputs.aws-region }}" || -z "${{ inputs.aws-role-to-assume }}" ]]; then
+              echo "Error: aws-region and aws-role-to-assume are required when cloud-provider is 'aws'"
+              exit 1
+            fi
+            ;;
+          "gcp")
+            if [[ -z "${{ inputs.gcp-wif-provider }}" || -z "${{ inputs.gcp-service-account }}" ]]; then
+              echo "Error: gcp-wif-provider and gcp-service-account are required when cloud-provider is 'gcp'"
+              exit 1
+            fi
+            ;;
+          "azure")
+            if [[ -z "${{ inputs.azure-client-id }}" || -z "${{ inputs.azure-tenant-id }}" || -z "${{ inputs.azure-subscription-id }}" ]]; then
+              echo "Error: azure-client-id, azure-tenant-id, and azure-subscription-id are required when cloud-provider is 'azure'"
+              exit 1
+            fi
+            ;;
+          *)
+            echo "Error: cloud-provider must be 'aws', 'gcp', or 'azure'"
+            exit 1
+            ;;
+        esac
 
     - name: Setup Terraform Cloud Credentials
       id: setup-tfc-credentials
