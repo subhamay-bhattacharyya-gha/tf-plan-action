@@ -11,6 +11,15 @@ on:
         options:
         - s3
         - remote
+      cloud-provider:
+        description: 'Cloud provider for authentication'
+        required: true
+        default: 'gcp'
+        type: choice
+        options:
+        - aws
+        - gcp
+        - azure
 
 jobs:
   terraform-plan-s3:
@@ -44,6 +53,15 @@ jobs:
           terraform-dir: examples/tfc-backend
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
+          cloud-provider: ${{ github.event.inputs.cloud-provider }}
+          # AWS inputs
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          # GCP inputs
           gcp-wif-provider: ${{ secrets.GCP_WIF_PROVIDER }}
           gcp-service-account: ${{ secrets.GCP_BOOTSTRAP_SA }}
+          # Azure inputs
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           tf-vars-file: terraform.tfvars

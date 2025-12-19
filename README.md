@@ -49,14 +49,35 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 
 **Note**: Backend configuration (organization and workspace) should be defined in your Terraform files.
 
-### GCP Authentication Inputs (optional)
+### Cloud Provider Authentication Inputs
 
 | Name                  | Description                                              | Required | Default   |
 |-----------------------|----------------------------------------------------------|----------|-----------|
-| `gcp-wif-provider`    | GCP Workload Identity Federation provider                | No       | —         |
-| `gcp-service-account` | GCP service account email for authentication            | No       | —         |
+| `cloud-provider`      | Cloud service provider: `aws`, `gcp`, or `azure`         | Yes      | —         |
 
-**Note**: Both GCP inputs must be provided together for GCP authentication to be configured.
+#### AWS Authentication (when `cloud-provider` is `aws`)
+
+| Name                  | Description                                              | Required | Default   |
+|-----------------------|----------------------------------------------------------|----------|-----------|
+| `aws-region`          | AWS region for authentication                            | Yes*     | —         |
+| `aws-role-to-assume`  | AWS IAM role ARN to assume                               | Yes*     | —         |
+
+#### GCP Authentication (when `cloud-provider` is `gcp`)
+
+| Name                  | Description                                              | Required | Default   |
+|-----------------------|----------------------------------------------------------|----------|-----------|
+| `gcp-wif-provider`    | GCP Workload Identity Federation provider                | Yes*     | —         |
+| `gcp-service-account` | GCP service account email for authentication             | Yes*     | —         |
+
+#### Azure Authentication (when `cloud-provider` is `azure`)
+
+| Name                  | Description                                              | Required | Default   |
+|-----------------------|----------------------------------------------------------|----------|-----------|
+| `azure-client-id`     | Azure client ID for authentication                       | Yes*     | —         |
+| `azure-tenant-id`     | Azure tenant ID for authentication                       | Yes*     | —         |
+| `azure-subscription-id` | Azure subscription ID for authentication               | Yes*     | —         |
+
+**Note**: *Required only when the corresponding cloud provider is selected.
 
 ---
 
@@ -127,12 +148,39 @@ jobs:
           tf-vars-file: production.tfvars
 ```
 
-### Using with GCP Authentication
+### Using with Cloud Provider Authentication
 
-For GCP resources, you can include Workload Identity Federation authentication:
+#### AWS Authentication
 
 ```yaml
-name: Terraform Plan with HCP Terraform Cloud and GCP
+name: Terraform Plan with AWS Authentication
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+        with:
+          terraform-dir: infrastructure/
+          backend-type: s3
+          s3-bucket: my-terraform-state-bucket
+          s3-region: us-east-1
+          cloud-provider: aws
+          aws-region: us-east-1
+          aws-role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          tf-vars-file: production.tfvars
+```
+
+#### GCP Authentication
+
+```yaml
+name: Terraform Plan with GCP Authentication
 
 on:
   workflow_dispatch:
@@ -149,8 +197,36 @@ jobs:
           terraform-dir: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
+          cloud-provider: gcp
           gcp-wif-provider: ${{ secrets.GCP_WIF_PROVIDER }}
           gcp-service-account: ${{ secrets.GCP_BOOTSTRAP_SA }}
+          tf-vars-file: production.tfvars
+```
+
+#### Azure Authentication
+
+```yaml
+name: Terraform Plan with Azure Authentication
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+        with:
+          terraform-dir: infrastructure/
+          backend-type: remote
+          tfc-token: ${{ secrets.TFC_API_TOKEN }}
+          cloud-provider: azure
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           tf-vars-file: production.tfvars
 ```
 
@@ -178,6 +254,41 @@ terraform {
   }
 }
 ```
+
+### Setting up AWS OIDC Authentication
+
+1. **Create an OIDC Identity Provider**:
+   ```bash
+   aws iam create-open-id-connect-provider \
+     --url https://token.actions.githubusercontent.com \
+     --client-id-list sts.amazonaws.com \
+     --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
+   ```
+
+2. **Create an IAM Role**:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": {
+           "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
+         },
+         "Action": "sts:AssumeRoleWithWebIdentity",
+         "Condition": {
+           "StringEquals": {
+             "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+             "token.actions.githubusercontent.com:sub": "repo:your-org/your-repo:ref:refs/heads/main"
+           }
+         }
+       }
+     ]
+   }
+   ```
+
+3. **Add Repository Secret**:
+   - `AWS_ROLE_ARN`: `arn:aws:iam::ACCOUNT_ID:role/GitHubActionsRole`
 
 ### Setting up GCP Workload Identity Federation
 
@@ -217,6 +328,43 @@ terraform {
 4. **Add Repository Secrets**:
    - `GCP_WIF_PROVIDER`: `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/providers/github-provider`
    - `GCP_BOOTSTRAP_SA`: `github-actions-sa@your-project-id.iam.gserviceaccount.com`
+
+### Setting up Azure OIDC Authentication
+
+1. **Create an Azure AD Application**:
+   ```bash
+   az ad app create --display-name "GitHub Actions App"
+   ```
+
+2. **Create a Service Principal**:
+   ```bash
+   az ad sp create --id <APPLICATION_ID>
+   ```
+
+3. **Configure Federated Credentials**:
+   ```bash
+   az ad app federated-credential create \
+     --id <APPLICATION_ID> \
+     --parameters '{
+       "name": "GitHubActions",
+       "issuer": "https://token.actions.githubusercontent.com",
+       "subject": "repo:your-org/your-repo:ref:refs/heads/main",
+       "audiences": ["api://AzureADTokenExchange"]
+     }'
+   ```
+
+4. **Assign Role to Service Principal**:
+   ```bash
+   az role assignment create \
+     --assignee <SERVICE_PRINCIPAL_ID> \
+     --role Contributor \
+     --scope /subscriptions/<SUBSCRIPTION_ID>
+   ```
+
+5. **Add Repository Secrets**:
+   - `AZURE_CLIENT_ID`: Application (client) ID
+   - `AZURE_TENANT_ID`: Directory (tenant) ID  
+   - `AZURE_SUBSCRIPTION_ID`: Subscription ID
 
 ### Setting up S3 Backend
 
