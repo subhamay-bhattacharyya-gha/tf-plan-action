@@ -2,6 +2,7 @@ name: "Terraform Plan"
 description: "Run terraform plan with support for S3 backend, HCP Terraform Cloud, and artifact upload."
 
 inputs:
+
   terraform-dir:
     description: "Relative path to the directory containing Terraform configuration files (e.g., 'tf', 'infrastructure')."
     required: false
@@ -20,18 +21,20 @@ inputs:
     type: string
     default: "false"
 
+  # Backend Type Selection
   backend-type:
     description: "Backend type to use: 's3' for AWS S3 or 'remote' for HCP Terraform Cloud."
     required: false
     type: string
     default: "s3"
 
+  # Cloud Provider Selection
   cloud-provider:
     description: "Cloud service provider for authentication: 'aws', 'gcp', or 'azure'."
     required: true
     type: string
 
-  # S3 Backend Inputs
+  #  AWS S3 Backend Configuration
   s3-bucket:
     description: "Name of the S3 bucket used as the backend for storing the Terraform state file. Required when backend-type is 's3'."
     required: false
@@ -41,6 +44,12 @@ inputs:
     description: "AWS region where the S3 backend bucket is located (e.g., us-east-1, eu-west-1). Required when backend-type is 's3'."
     required: false
     type: string
+
+  s3-key-prefix:
+    description: "Optional prefix for the S3 state key (AWS only)."
+    required: false
+    type: string
+    default: ""
 
   # HCP Terraform Cloud Inputs
   tfc-token:
@@ -86,6 +95,7 @@ inputs:
     required: false
     type: string
 
+  # Terraform artifacts
   tf-plan-name:
     description: "Name of the Terraform plan file"
     required: false
@@ -109,51 +119,62 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Set Checkout Ref
-      id: set-ref
+
+    # 📋 Correct Step Sequence:
+    ################################################
+    # Debug - Print All Inputs - Debug information
+    # Validate Configuration - Input validation
+    # Set Checkout Ref - Determine checkout reference
+    # Checkout Repo - Get the code
+    # Setup Terraform - Install Terraform
+    # Download Terraform plan artifact - Get the plan file
+    # Configure Cloud Authentication - OIDC authentication (AWS/Azure/GCP)
+    # Setup TFC Credentials - HCP Terraform Cloud credentials (if remote)
+    # Initialize Remote Backend - HCP Terraform Cloud init (if remote)
+    # Generate State Key - Create S3 state key (if S3)
+    # Initialize S3 Backend - S3 backend init (if S3)
+    # Terraform Plan - Execute Terraform plan and save output
+
+    # Print all inputs for debug
+    #############################################
+    - name: Debug - Print All Inputs
+      id: debug-inputs
       shell: bash
       run: |
-        if [[ -n "${{ inputs.release-tag }}" ]]; then
-          echo "ref=${{ inputs.release-tag }}" >> $GITHUB_OUTPUT
-        else
-          echo "ref=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-        fi
+        echo "=== DEBUG: All Action Inputs ==="
+        echo "backend-type: ${{ inputs.backend-type }}"
+        echo "cloud-provider: ${{ inputs.cloud-provider }}"
+        echo "terraform-dir: ${{ inputs.terraform-dir }}"
+        echo "release-tag: ${{ inputs.release-tag }}"
+        echo "ci-pipeline: ${{ inputs.ci-pipeline }}"
+        echo "tf-plan-name: ${{ inputs.tf-plan-name }}"
+        echo "tf-plan-file: ${{ inputs.tf-plan-file }}"
+        echo "tf-vars-file: ${{ inputs.tf-vars-file }}"
+        echo ""
+        echo "=== AWS S3 Backend Inputs ==="
+        echo "s3-bucket: ${{ inputs.s3-bucket }}"
+        echo "s3-region: ${{ inputs.s3-region }}"
+        echo "s3-key-prefix: ${{ inputs.s3-key-prefix }}"
+        echo ""
+        echo "=== HCP Terraform Cloud Inputs ==="
+        echo "tfc-token: [REDACTED - $(if [[ -n '${{ inputs.tfc-token }}' ]]; then echo 'PROVIDED'; else echo 'NOT PROVIDED'; fi)]"
+        echo ""
+        echo "=== AWS Authentication Inputs ==="
+        echo "aws-region: ${{ inputs.aws-region }}"
+        echo "aws-role-to-assume: ${{ inputs.aws-role-to-assume }}"
+        echo ""
+        echo "=== GCP Authentication Inputs ==="
+        echo "gcp-wif-provider: ${{ inputs.gcp-wif-provider }}"
+        echo "gcp-service-account: ${{ inputs.gcp-service-account }}"
+        echo ""
+        echo "=== Azure Authentication Inputs ==="
+        echo "azure-client-id: ${{ inputs.azure-client-id }}"
+        echo "azure-tenant-id: ${{ inputs.azure-tenant-id }}"
+        echo "azure-subscription-id: ${{ inputs.azure-subscription-id }}"
+        echo "================================="
 
-    - name: Checkout Repo
-      id: checkout
-      uses: actions/checkout@v6
-      with:
-        ref: ${{ steps.set-ref.outputs.ref }}
-
-    - name: Configure AWS Authentication (OIDC)
-      id: aws-auth
-      if: inputs.cloud-provider == 'aws'
-      uses: aws-actions/configure-aws-credentials@v5
-      with:
-        role-to-assume: ${{ inputs.aws-role-to-assume }}
-        aws-region: ${{ inputs.aws-region }}
-
-    - name: Configure GCP Authentication (WIF)
-      id: gcp-auth
-      if: inputs.cloud-provider == 'gcp'
-      uses: google-github-actions/auth@v3
-      with:
-        workload_identity_provider: ${{ inputs.gcp-wif-provider }}
-        service_account: ${{ inputs.gcp-service-account }}
-
-    - name: Configure Azure Authentication (OIDC)
-      id: azure-auth
-      if: inputs.cloud-provider == 'azure'
-      uses: azure/login@v2
-      with:
-        client-id: ${{ inputs.azure-client-id }}
-        tenant-id: ${{ inputs.azure-tenant-id }}
-        subscription-id: ${{ inputs.azure-subscription-id }}
-
-    - name: Setup Terraform
-      id: setup-terraform
-      uses: hashicorp/setup-terraform@v3
-
+    # Validate input configuration
+    #############################################
     - name: Validate Configuration
       id: validate-config
       shell: bash
@@ -201,6 +222,59 @@ runs:
             ;;
         esac
 
+    # Determine checkout reference
+    #############################################
+    - name: Set Checkout Ref
+      id: set-ref
+      shell: bash
+      run: |
+        if [[ -n "${{ inputs.release-tag }}" ]]; then
+          echo "ref=${{ inputs.release-tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "ref=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+        fi
+
+    # Checkout repo and setup Terraform
+    #############################################
+    - name: Checkout Repo
+      id: checkout
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ steps.set-ref.outputs.ref }}
+
+    - name: Setup Terraform
+      id: setup-terraform
+      uses: hashicorp/setup-terraform@v3
+
+    #  Cloud Provider Authentication (OIDC)
+    #############################################    
+    - name: Configure AWS Authentication (OIDC)
+      id: aws-auth
+      if: inputs.cloud-provider == 'aws'
+      uses: aws-actions/configure-aws-credentials@v5
+      with:
+        role-to-assume: ${{ inputs.aws-role-to-assume }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Configure Azure Authentication (OIDC)
+      id: azure-auth
+      if: inputs.cloud-provider == 'azure'
+      uses: azure/login@v2
+      with:
+        client-id: ${{ inputs.azure-client-id }}
+        tenant-id: ${{ inputs.azure-tenant-id }}
+        subscription-id: ${{ inputs.azure-subscription-id }}
+
+    - name: Configure GCP Authentication (WIF)
+      id: gcp-auth
+      if: inputs.cloud-provider == 'gcp'
+      uses: google-github-actions/auth@v3
+      with:
+        workload_identity_provider: ${{ inputs.gcp-wif-provider }}
+        service_account: ${{ inputs.gcp-service-account }}
+
+    #  Terraform Cloud Backend 
+    #############################################
     - name: Setup Terraform Cloud Credentials
       id: setup-tfc-credentials
       if: inputs.backend-type == 'remote'
@@ -217,6 +291,16 @@ runs:
         }
         EOF
 
+    - name: Initialize Terraform with HCP Terraform Cloud Backend
+      id: terraform-init-remote
+      if: inputs.backend-type == 'remote'
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
+      run: |
+        terraform init -input=false
+
+    #  AWS S3 Backend 
+    #############################################
     - name: Generate Terraform State Key
       id: generate-tfstate-key
       if: inputs.backend-type == 's3'
@@ -243,14 +327,8 @@ runs:
           -backend-config="encrypt=true" \
           -backend-config="use_lockfile=true"
 
-    - name: Initialize Terraform with HCP Terraform Cloud Backend
-      id: terraform-init-remote
-      if: inputs.backend-type == 'remote'
-      shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
-      run: |
-        terraform init -input=false
-
+    # Final step - Terraform plan and save output
+    #############################################
     - name: Terraform Plan and Save Output
       id: tf-plan
       shell: bash
