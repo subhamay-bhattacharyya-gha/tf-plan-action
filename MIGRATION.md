@@ -51,7 +51,7 @@ terraform {
   with:
     terraform-dir: tf/
     backend-type: s3
-    s3-bucket: my-terraform-state-bucket
+    s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
     s3-region: us-east-1
     tf-vars-file: dev.tfvars
 ```
