@@ -2,7 +2,7 @@
 
 ![Release](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/actions/workflows/release.yaml/badge.svg)&nbsp;![Commit Activity](https://img.shields.io/github/commit-activity/t/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Last Commit](https://img.shields.io/github/last-commit/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Release Date](https://img.shields.io/github/release-date/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Repo Size](https://img.shields.io/github/repo-size/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![File Count](https://img.shields.io/github/directory-file-count/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Issues](https://img.shields.io/github/issues/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Top Language](https://img.shields.io/github/languages/top/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Custom Endpoint](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bsubhamay/4b78231973ba23bf79edc938aa3c2db5/raw/tf-plan-action.json?)
 
-A comprehensive GitHub composite action for running `terraform plan` with support for multiple backends (S3, HCP Terraform Cloud), GCP Workload Identity Federation, and automated artifact management.
+A comprehensive GitHub composite action for running `terraform plan` with support for multiple backends (S3, HCP Terraform Cloud) and multi-cloud authentication (AWS, GCP, Azure) using OIDC/Workload Identity Federation.
 
 ---
 
@@ -11,12 +11,16 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 - **🔄 Multiple Backend Support**: Choose between S3 or HCP Terraform Cloud backends
 - **☁️ S3 Backend**: Dynamic key construction based on GitHub repo name with encryption and locking
 - **🏢 HCP Terraform Cloud**: Native integration with Terraform Cloud workspaces and remote execution
-- **🔐 GCP Authentication**: Built-in Workload Identity Federation support for secure GCP access
-- **🚀 CI/CD Optimized**: Commit-SHA-based state isolation for parallel pipeline execution
+- **🌐 Multi-Cloud Authentication**: Built-in OIDC support for AWS, GCP, and Azure
+  - **AWS**: IAM role assumption via OIDC
+  - **GCP**: Workload Identity Federation for secure access
+  - **Azure**: Service principal authentication via OIDC
+- **� CI/CD Oyptimized**: Commit-SHA-based state isolation for parallel pipeline execution
 - **📦 Artifact Management**: Automatic upload of plan files (`tfplan.out` and `plan.txt`) as GitHub artifacts
 - **📊 Rich Output**: Formatted Terraform plan output in GitHub Actions summary with syntax highlighting
-- **🔒 Security First**: Secure credential handling with automatic cleanup
+- **🔒 Security First**: Keyless authentication with automatic credential cleanup
 - **⚡ Performance**: Optimized initialization and execution flow
+- **🔧 Flexible Configuration**: Support for custom variables, multiple environments, and advanced workflows
 
 ---
 
@@ -89,12 +93,36 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 
 ---
 
-## 🚀 Example Usage
+## 🚀 Quick Start
 
-### Using S3 Backend
+1. **Choose your cloud provider** and set up authentication (see [Setup Guides](#️-setup-guides))
+2. **Configure your Terraform backend** (S3 or HCP Terraform Cloud)
+3. **Add the action to your workflow**:
 
 ```yaml
-name: Terraform Plan with S3
+- uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+  with:
+    cloud-provider: gcp  # or aws, azure
+    # Add your cloud-specific authentication inputs
+    gcp-wif-provider: ${{ secrets.GCP_WIF_PROVIDER }}
+    gcp-service-account: ${{ secrets.GCP_BOOTSTRAP_SA }}
+    # Add your backend configuration
+    backend-type: remote  # or s3
+    tfc-token: ${{ secrets.TFC_API_TOKEN }}
+```
+
+> **Note:** Always store sensitive values like API tokens, role ARNs, and service account details as GitHub repository secrets. Use repository variables for non-sensitive configuration values like regions and bucket names.
+
+---
+
+## 🚀 Example Usage
+
+### AWS Cloud Provider
+
+#### AWS with S3 Backend
+
+```yaml
+name: Terraform Plan - AWS with S3 Backend
 
 on:
   workflow_dispatch:
@@ -102,18 +130,31 @@ on:
 jobs:
   terraform-plan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
           terraform-dir: tf/
           backend-type: s3
-          s3-bucket: my-terraform-state-bucket
-          s3-region: us-east-1
+          s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
+          s3-region: ${{ vars.AWS_REGION }}
+          cloud-provider: aws
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           tf-vars-file: dev.tfvars
           ci-pipeline: "true"
 ```
 
-### Using HCP Terraform Cloud
+> **Note:** Configure these values in your GitHub repository:
+> - `AWS_REGION` (Variable): Your AWS region (e.g., `us-east-1`)
+> - `AWS_TF_STATE_BUCKET` (Variable): Your S3 bucket name for Terraform state (e.g., `my-company-terraform-state`)
+> - `AWS_ROLE_ARN` (Secret): Your IAM role ARN (e.g., `arn:aws:iam::123456789012:role/GitHubActionsRole`)
+> 
+> Never hardcode IAM role ARNs, bucket names, or regions in your workflow files. Store sensitive values like role ARNs as GitHub repository secrets and non-sensitive values like regions and bucket names as repository variables for security.
+
+#### AWS with HCP Terraform Cloud Backend
 
 Configure your backend in your Terraform files (e.g., `backend.tf` or `main.tf`):
 
@@ -131,7 +172,7 @@ terraform {
 Then use the action:
 
 ```yaml
-name: Terraform Plan with HCP Terraform Cloud
+name: Terraform Plan - AWS with HCP Terraform Cloud
 
 on:
   workflow_dispatch:
@@ -139,21 +180,34 @@ on:
 jobs:
   terraform-plan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
           terraform-dir: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
+          cloud-provider: aws
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           tf-vars-file: production.tfvars
 ```
 
-### Using with Cloud Provider Authentication
+> **Note:** Configure these values in your GitHub repository:
+> - `TFC_API_TOKEN` (Secret): Your HCP Terraform Cloud API token
+> - `AWS_REGION` (Variable): Your AWS region (e.g., `us-east-1`)
+> - `AWS_ROLE_ARN` (Secret): Your IAM role ARN (e.g., `arn:aws:iam::123456789012:role/GitHubActionsRole`)
+> 
+> Store all authentication tokens and role ARNs as GitHub repository secrets. Configure your backend settings directly in your Terraform files.
 
-#### AWS Authentication
+### GCP Cloud Provider
+
+#### GCP with S3 Backend
 
 ```yaml
-name: Terraform Plan with AWS Authentication
+name: Terraform Plan - GCP with S3 Backend
 
 on:
   workflow_dispatch:
@@ -169,18 +223,41 @@ jobs:
         with:
           terraform-dir: infrastructure/
           backend-type: s3
-          s3-bucket: my-terraform-state-bucket
-          s3-region: us-east-1
-          cloud-provider: aws
-          aws-region: us-east-1
-          aws-role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
+          s3-region: ${{ vars.AWS_REGION }}
+          cloud-provider: gcp
+          gcp-wif-provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          gcp-service-account: ${{ secrets.GCP_BOOTSTRAP_SA }}
           tf-vars-file: production.tfvars
 ```
 
-#### GCP Authentication
+> **Note:** Configure these values in your GitHub repository:
+> - `AWS_TF_STATE_BUCKET` (Variable): Your S3 bucket name for Terraform state (e.g., `my-company-terraform-state`)
+> - `AWS_REGION` (Variable): Your AWS region for the S3 backend (e.g., `us-east-1`)
+> - `GCP_WIF_PROVIDER` (Secret): Your GCP Workload Identity Federation provider
+> - `GCP_BOOTSTRAP_SA` (Secret): Your GCP service account email
+> 
+> This setup uses AWS S3 for state storage while authenticating to GCP for resource management. Store all authentication credentials as GitHub repository secrets.
+
+#### GCP with HCP Terraform Cloud Backend
+
+Configure your backend in your Terraform files (e.g., `backend.tf` or `main.tf`):
+
+```hcl
+terraform {
+  cloud {
+    organization = "your-organization"
+    workspaces {
+      name = "your-workspace"
+    }
+  }
+}
+```
+
+Then use the action:
 
 ```yaml
-name: Terraform Plan with GCP Authentication
+name: Terraform Plan - GCP with HCP Terraform Cloud
 
 on:
   workflow_dispatch:
@@ -202,6 +279,103 @@ jobs:
           gcp-service-account: ${{ secrets.GCP_BOOTSTRAP_SA }}
           tf-vars-file: production.tfvars
 ```
+
+> **Note:** Configure these values in your GitHub repository:
+> - `TFC_API_TOKEN` (Secret): Your HCP Terraform Cloud API token
+> - `GCP_WIF_PROVIDER` (Secret): Your GCP Workload Identity Federation provider
+> - `GCP_BOOTSTRAP_SA` (Secret): Your GCP service account email
+> 
+> Store all authentication tokens and provider configurations as GitHub repository secrets for security. Configure your backend settings directly in your Terraform files.
+
+### Azure Cloud Provider
+
+#### Azure with S3 Backend
+
+```yaml
+name: Terraform Plan - Azure with S3 Backend
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+        with:
+          terraform-dir: infrastructure/
+          backend-type: s3
+          s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
+          s3-region: ${{ vars.AWS_REGION }}
+          cloud-provider: azure
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tf-vars-file: production.tfvars
+```
+
+> **Note:** Configure these values in your GitHub repository:
+> - `AWS_TF_STATE_BUCKET` (Variable): Your S3 bucket name for Terraform state (e.g., `my-company-terraform-state`)
+> - `AWS_REGION` (Variable): Your AWS region for the S3 backend (e.g., `us-east-1`)
+> - `AZURE_CLIENT_ID` (Secret): Your Azure application (client) ID
+> - `AZURE_TENANT_ID` (Secret): Your Azure directory (tenant) ID
+> - `AZURE_SUBSCRIPTION_ID` (Secret): Your Azure subscription ID
+> 
+> This setup uses AWS S3 for state storage while authenticating to Azure for resource management. Store all authentication credentials as GitHub repository secrets.
+
+#### Azure with HCP Terraform Cloud Backend
+
+Configure your backend in your Terraform files (e.g., `backend.tf` or `main.tf`):
+
+```hcl
+terraform {
+  cloud {
+    organization = "your-organization"
+    workspaces {
+      name = "your-workspace"
+    }
+  }
+}
+```
+
+Then use the action:
+
+```yaml
+name: Terraform Plan - Azure with HCP Terraform Cloud
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+        with:
+          terraform-dir: infrastructure/
+          backend-type: remote
+          tfc-token: ${{ secrets.TFC_API_TOKEN }}
+          cloud-provider: azure
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tf-vars-file: production.tfvars
+```
+
+> **Note:** Configure these values in your GitHub repository:
+> - `TFC_API_TOKEN` (Secret): Your HCP Terraform Cloud API token
+> - `AZURE_CLIENT_ID` (Secret): Your Azure application (client) ID
+> - `AZURE_TENANT_ID` (Secret): Your Azure directory (tenant) ID
+> - `AZURE_SUBSCRIPTION_ID` (Secret): Your Azure subscription ID
+> 
+> Store all authentication tokens and Azure credentials as GitHub repository secrets for security. Configure your backend settings directly in your Terraform files.
+
 
 #### Azure Authentication
 
@@ -229,6 +403,20 @@ jobs:
           azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           tf-vars-file: production.tfvars
 ```
+
+> **Note:** Configure these values in your GitHub repository:
+> - `TFC_API_TOKEN` (Secret): Your HCP Terraform Cloud API token
+> - `AZURE_CLIENT_ID` (Secret): Your Azure application (client) ID
+> - `AZURE_TENANT_ID` (Secret): Your Azure directory (tenant) ID
+> - `AZURE_SUBSCRIPTION_ID` (Secret): Your Azure subscription ID
+> 
+> Store all authentication tokens and Azure credentials as GitHub repository secrets for security. Configure your backend settings directly in your Terraform files.
+> **Note:** Configure these Azure secrets in your GitHub repository:
+> - `AZURE_CLIENT_ID`: Your Azure application (client) ID
+> - `AZURE_TENANT_ID`: Your Azure tenant ID
+> - `AZURE_SUBSCRIPTION_ID`: Your Azure subscription ID
+> 
+> These values are required for OIDC authentication with Azure and should never be hardcoded in workflow files.
 
 ## ⚙️ Setup Guides
 
@@ -414,6 +602,9 @@ You can pass custom variables using a `.tfvars` file:
 ```yaml
 - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
   with:
+    cloud-provider: gcp
+    gcp-wif-provider: ${{ secrets.GCP_WIF_PROVIDER }}
+    gcp-service-account: ${{ secrets.GCP_BOOTSTRAP_SA }}
     tf-vars-file: environments/production.tfvars
 ```
 
@@ -424,6 +615,9 @@ Enable commit-SHA-based state isolation for parallel builds:
 ```yaml
 - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
   with:
+    cloud-provider: aws
+    aws-region: us-east-1
+    aws-role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
     ci-pipeline: "true"  # Creates unique state keys per commit
 ```
 
@@ -433,11 +627,14 @@ Enable commit-SHA-based state isolation for parallel builds:
 strategy:
   matrix:
     environment: [dev, staging, prod]
+    cloud: [aws, gcp, azure]
 steps:
   - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
     with:
       terraform-dir: environments/${{ matrix.environment }}
+      cloud-provider: ${{ matrix.cloud }}
       tf-vars-file: ${{ matrix.environment }}.tfvars
+      # Add cloud-specific authentication inputs based on matrix.cloud
 ```
 
 ## 🔍 Troubleshooting
@@ -484,12 +681,16 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 - **Terraform**: >= 1.0
 - **GitHub Actions Runner**: ubuntu-latest, windows-latest, or macos-latest
-- **Permissions**: `contents: read`, `id-token: write` (for GCP WIF)
+- **Permissions**: `contents: read`, `id-token: write` (required for OIDC authentication)
+- **Cloud Provider**: Must specify one of `aws`, `gcp`, or `azure` with corresponding authentication setup
+- **Backend Configuration**: Either S3 bucket setup or HCP Terraform Cloud workspace configuration
 
 ## 🔗 Related Actions
 
 - [hashicorp/setup-terraform](https://github.com/hashicorp/setup-terraform) - Set up Terraform CLI
+- [aws-actions/configure-aws-credentials](https://github.com/aws-actions/configure-aws-credentials) - AWS authentication
 - [google-github-actions/auth](https://github.com/google-github-actions/auth) - GCP authentication
+- [azure/login](https://github.com/azure/login) - Azure authentication
 - [actions/upload-artifact](https://github.com/actions/upload-artifact) - Artifact management
 
 ## 📊 Changelog

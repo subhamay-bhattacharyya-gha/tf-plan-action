@@ -55,7 +55,7 @@ jobs:
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: ${{ github.event.inputs.cloud-provider }}
           # AWS inputs
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
           aws-role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           # GCP inputs
           gcp-wif-provider: ${{ secrets.GCP_WIF_PROVIDER }}
