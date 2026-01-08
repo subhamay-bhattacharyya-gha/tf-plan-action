@@ -1,3 +1,11 @@
+## [1.2.1](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.2.0...v1.2.1) (2026-01-08)
+
+
+### Bug Fixes
+
+* add audience parameter for Azure authentication ([7876b23](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/7876b23f3c37afa9d902dc0ca93222761997a292))
+* remove audience parameter from Azure authentication step ([cdb4d00](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/cdb4d00350fdd8701c82f1bf440b10777783f3d6))
+
 # [1.2.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.1.0...v1.2.0) (2025-12-19)
 
 
