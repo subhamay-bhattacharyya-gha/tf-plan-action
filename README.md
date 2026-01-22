@@ -2,7 +2,7 @@
 
 ![Release](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/actions/workflows/release.yaml/badge.svg)&nbsp;![Commit Activity](https://img.shields.io/github/commit-activity/t/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Last Commit](https://img.shields.io/github/last-commit/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Release Date](https://img.shields.io/github/release-date/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Repo Size](https://img.shields.io/github/repo-size/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![File Count](https://img.shields.io/github/directory-file-count/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Issues](https://img.shields.io/github/issues/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Top Language](https://img.shields.io/github/languages/top/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Custom Endpoint](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bsubhamay/4b78231973ba23bf79edc938aa3c2db5/raw/tf-plan-action.json?)
 
-A comprehensive GitHub composite action for running `terraform plan` with support for multiple backends (S3, HCP Terraform Cloud) and multi-cloud authentication (AWS, GCP, Azure, Snowflake) using OIDC/Workload Identity Federation.
+A comprehensive GitHub composite action for running `terraform plan` with support for multiple backends (S3, HCP Terraform Cloud) and multi-cloud authentication (AWS, GCP, Azure, Snowflake, Databricks) using OIDC/Workload Identity Federation.
 
 ---
 
@@ -11,11 +11,12 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 - **🔄 Multiple Backend Support**: Choose between S3 or HCP Terraform Cloud backends
 - **☁️ S3 Backend**: Dynamic key construction based on GitHub repo name with encryption and locking
 - **🏢 HCP Terraform Cloud**: Native integration with Terraform Cloud workspaces and remote execution
-- **🌐 Multi-Cloud Authentication**: Built-in OIDC support for AWS, GCP, Azure, and Snowflake
+- **🌐 Multi-Cloud Authentication**: Built-in OIDC support for AWS, GCP, Azure, Snowflake, and Databricks
   - **AWS**: IAM role assumption via OIDC
   - **GCP**: Workload Identity Federation for secure access
   - **Azure**: Service principal authentication via OIDC
   - **Snowflake**: Private key authentication for secure data platform access
+  - **Databricks**: Personal access token authentication for unified analytics platform
 - **� CI/CD Oyptimized**: Commit-SHA-based state isolation for parallel pipeline execution
 - **📦 Artifact Management**: Automatic upload of plan files (`tfplan.out` and `plan.txt`) as GitHub artifacts
 - **📊 Rich Output**: Formatted Terraform plan output in GitHub Actions summary with syntax highlighting
@@ -58,7 +59,7 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 
 | Name                  | Description                                              | Required | Default   |
 |-----------------------|----------------------------------------------------------|----------|-----------|
-| `cloud-provider`      | Cloud service provider: `aws`, `gcp`, `azure`, or `snowflake` | Yes      | —         |
+| `cloud-provider`      | Cloud service provider: `aws`, `gcp`, `azure`, `snowflake`, or `databricks` | Yes      | —         |
 
 #### AWS Authentication (when `cloud-provider` is `aws`)
 
@@ -91,6 +92,13 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 | `snowflake-role`      | Snowflake role name                                      | Yes*     | —         |
 | `snowflake-private-key` | Snowflake private key for authentication (use secrets) | Yes*     | —         |
 
+#### Databricks Authentication (when `cloud-provider` is `databricks`)
+
+| Name                  | Description                                              | Required | Default   |
+|-----------------------|----------------------------------------------------------|----------|-----------|
+| `databricks-host`     | Databricks workspace URL (use secrets)                   | Yes*     | —         |
+| `databricks-token`    | Databricks personal access token (use secrets)           | Yes*     | —         |
+
 **Note**: *Required only when the corresponding cloud provider is selected.
 
 ---
@@ -112,7 +120,7 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 ```yaml
 - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
   with:
-    cloud-provider: gcp  # or aws, azure, snowflake
+    cloud-provider: gcp  # or aws, azure, snowflake, databricks
     # Add your cloud-specific authentication inputs
     gcp-wif-provider: ${{ secrets.GCP_WIF_PROVIDER }}
     gcp-service-account: ${{ secrets.GCP_BOOTSTRAP_SA }}
@@ -521,6 +529,91 @@ jobs:
 > 
 > Store all authentication tokens and private keys as GitHub repository secrets for security. Configure your backend settings directly in your Terraform files.
 
+### Databricks Cloud Provider
+
+#### Databricks with S3 Backend
+
+```yaml
+name: Terraform Plan - Databricks with S3 Backend
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+        with:
+          terraform-dir: infrastructure/
+          backend-type: s3
+          s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
+          s3-region: ${{ vars.AWS_REGION }}
+          cloud-provider: databricks
+          databricks-host: ${{ secrets.DATABRICKS_HOST }}
+          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
+          tf-vars-file: production.tfvars
+```
+
+> **Note:** Configure these values in your GitHub repository:
+> - `AWS_TF_STATE_BUCKET` (Variable): Your S3 bucket name for Terraform state (e.g., `my-company-terraform-state`)
+> - `AWS_REGION` (Variable): Your AWS region for the S3 backend (e.g., `us-east-1`)
+> - `DATABRICKS_HOST` (Secret): Your Databricks workspace URL (e.g., `https://dbc-12345678-9abc.cloud.databricks.com`)
+> - `DATABRICKS_TOKEN` (Secret): Your Databricks personal access token
+> 
+> This setup uses AWS S3 for state storage while authenticating to Databricks for resource management. Store all Databricks credentials as GitHub repository secrets.
+
+#### Databricks with HCP Terraform Cloud Backend
+
+Configure your backend in your Terraform files (e.g., `backend.tf` or `main.tf`):
+
+```hcl
+terraform {
+  cloud {
+    organization = "your-organization"
+    workspaces {
+      name = "your-workspace"
+    }
+  }
+}
+```
+
+Then use the action:
+
+```yaml
+name: Terraform Plan - Databricks with HCP Terraform Cloud
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+        with:
+          terraform-dir: infrastructure/
+          backend-type: remote
+          tfc-token: ${{ secrets.TFC_API_TOKEN }}
+          cloud-provider: databricks
+          databricks-host: ${{ secrets.DATABRICKS_HOST }}
+          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
+          tf-vars-file: production.tfvars
+```
+
+> **Note:** Configure these values in your GitHub repository:
+> - `TFC_API_TOKEN` (Secret): Your HCP Terraform Cloud API token
+> - `DATABRICKS_HOST` (Secret): Your Databricks workspace URL (e.g., `https://dbc-12345678-9abc.cloud.databricks.com`)
+> - `DATABRICKS_TOKEN` (Secret): Your Databricks personal access token
+> 
+> Store all authentication tokens as GitHub repository secrets for security. Configure your backend settings directly in your Terraform files.
+
 ## ⚙️ Setup Guides
 
 ### Setting up HCP Terraform Cloud
@@ -718,6 +811,51 @@ terraform {
    }
    ```
 
+### Setting up Databricks Authentication
+
+1. **Generate Personal Access Token**:
+   - Log in to your Databricks workspace
+   - Click on your username in the top right corner
+   - Select **User Settings**
+   - Go to the **Access tokens** tab
+   - Click **Generate new token**
+   - Provide a comment (e.g., "Terraform GitHub Actions")
+   - Set an optional lifetime (or leave blank for no expiration)
+   - Click **Generate**
+   - Copy the token immediately (it won't be shown again)
+
+2. **Get Your Workspace URL**:
+   - Your Databricks workspace URL is in the format: `https://dbc-12345678-9abc.cloud.databricks.com`
+   - You can find it in your browser's address bar when logged into Databricks
+
+3. **Add Repository Secrets**:
+   - `DATABRICKS_HOST` (Secret): Your Databricks workspace URL (e.g., `https://dbc-12345678-9abc.cloud.databricks.com`)
+   - `DATABRICKS_TOKEN` (Secret): Your Databricks personal access token
+
+4. **Configure Databricks Provider in Terraform**:
+   ```hcl
+   terraform {
+     required_providers {
+       databricks = {
+         source  = "databricks/databricks"
+         version = "~> 1.0"
+       }
+     }
+   }
+   
+   provider "databricks" {
+     # Authentication will be provided via environment variables
+     # DATABRICKS_HOST, DATABRICKS_TOKEN
+   }
+   ```
+
+5. **Best Practices**:
+   - Use service principals instead of personal access tokens for production
+   - Rotate tokens regularly
+   - Set appropriate token lifetimes
+   - Use workspace-level tokens for workspace-specific resources
+   - Use account-level tokens for account-level resources
+
 ### Setting up S3 Backend
 
 1. **Create S3 Bucket**:
@@ -846,7 +984,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - **Terraform**: >= 1.0
 - **GitHub Actions Runner**: ubuntu-latest, windows-latest, or macos-latest
 - **Permissions**: `contents: read`, `id-token: write` (required for OIDC authentication)
-- **Cloud Provider**: Must specify one of `aws`, `gcp`, `azure`, or `snowflake` with corresponding authentication setup
+- **Cloud Provider**: Must specify one of `aws`, `gcp`, `azure`, `snowflake`, or `databricks` with corresponding authentication setup
 - **Backend Configuration**: Either S3 bucket setup or HCP Terraform Cloud workspace configuration
 
 ## 🔗 Related Actions
