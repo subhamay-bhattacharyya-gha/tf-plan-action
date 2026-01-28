@@ -33,7 +33,7 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 
 | Name              | Description                                              | Required | Default   |
 |-------------------|----------------------------------------------------------|----------|-----------|
-| `terraform-dir`   | Path to the Terraform configuration directory            | No       | `tf`      |
+| `tf-config-path`   | Path to the Terraform configuration directory            | No       | `tf`      |
 | `release-tag`     | Git release tag to check out                             | No       | `""`      |
 | `ci-pipeline`     | Boolean string (`"true"` or `"false"`) for SHA-isolated state | No       | `false`   |
 | `backend-type`    | Backend type: `s3` or `remote` (HCP Terraform Cloud)     | No       | `s3`      |
@@ -159,7 +159,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: tf/
+          tf-config-path: tf/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
@@ -209,7 +209,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: aws
@@ -244,7 +244,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
@@ -294,7 +294,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: gcp
@@ -329,7 +329,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
@@ -381,7 +381,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: azure
@@ -417,7 +417,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: azure
@@ -462,7 +462,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
@@ -517,7 +517,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: snowflake
@@ -559,7 +559,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
@@ -610,7 +610,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: databricks
@@ -668,7 +668,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infra/
+          tf-config-path: infra/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
@@ -711,7 +711,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infra/
+          tf-config-path: infra/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: platform
@@ -1113,7 +1113,7 @@ strategy:
 steps:
   - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
     with:
-      terraform-dir: environments/${{ matrix.environment }}
+      tf-config-path: environments/${{ matrix.environment }}
       cloud-provider: ${{ matrix.cloud }}
       tf-vars-file: ${{ matrix.environment }}.tfvars
       # Add cloud-specific authentication inputs based on matrix.cloud

@@ -7,7 +7,7 @@ inputs:
     description: "Target cloud provider or platform (aws, gcp, azure, snowflake, databricks, platform)"
     required: true
     type: string
-  terraform-dir:
+  tf-config-path:
     description: "Relative path to the directory containing Terraform configuration files (e.g., 'tf', 'infrastructure')."
     required: false
     type: string
@@ -140,7 +140,7 @@ runs:
         echo "=== DEBUG: All Action Inputs ==="
         echo "backend-type: ${{ inputs.backend-type }}"
         echo "cloud-provider: ${{ inputs.cloud-provider }}"
-        echo "terraform-dir: ${{ inputs.terraform-dir }}"
+        echo "tf-config-path: ${{ inputs.tf-config-path }}"
         echo "release-tag: ${{ inputs.release-tag }}"
         echo "ci-pipeline: ${{ inputs.ci-pipeline }}"
         echo "tf-plan-name: ${{ inputs.tf-plan-name }}"
@@ -353,7 +353,7 @@ runs:
       id: terraform-init-remote
       if: inputs.backend-type == 'remote'
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
+      working-directory: ${{ github.workspace }}/${{ inputs.tf-config-path }}
       run: |
         terraform init -input=false
 
@@ -363,7 +363,7 @@ runs:
       id: generate-tfstate-key
       if: inputs.backend-type == 's3'
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
+      working-directory: ${{ github.workspace }}/${{ inputs.tf-config-path }}
       run: |
         if [[ "${{ inputs.ci-pipeline }}" == "true" ]]; then
           state_key="${{ github.repository }}/${{ github.sha }}/terraform.tfstate"
@@ -376,7 +376,7 @@ runs:
       id: terraform-init-s3
       if: inputs.backend-type == 's3'
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
+      working-directory: ${{ github.workspace }}/${{ inputs.tf-config-path }}
       run: |
         terraform init -input=false \
           -backend-config="bucket=${{ inputs.s3-bucket }}" \
@@ -390,7 +390,7 @@ runs:
     - name: Terraform Plan and Save Output
       id: tf-plan
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
+      working-directory: ${{ github.workspace }}/${{ inputs.tf-config-path }}
       run: |
         echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -406,7 +406,7 @@ runs:
       with:
         name: ${{ inputs.tf-plan-name }}
         path: |
-          ${{ github.workspace }}/${{ inputs.terraform-dir }}/${{ inputs.tf-plan-file }}.out
+          ${{ github.workspace }}/${{ inputs.tf-config-path }}/${{ inputs.tf-plan-file }}.out
 
     - name: Cleanup Terraform Cloud Credentials
       id: cleanup-tfc-credentials
