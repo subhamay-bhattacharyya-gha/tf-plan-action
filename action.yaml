@@ -343,7 +343,7 @@ runs:
     #############################################    
     - name: Configure AWS Authentication (OIDC)
       id: aws-auth
-      if: inputs.cloud-provider == 'aws' || inputs.backend-type == 's3' || (inputs.cloud-provider == 'platform' && inputs.aws-role-to-assume != '') || (inputs.aws-role-to-assume != '' && inputs.aws-region != '')
+      if: inputs.cloud-provider == 'aws' || inputs.backend-type == 's3' || (inputs.aws-role-to-assume != '' && inputs.aws-region != '')
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
