@@ -8,7 +8,7 @@ inputs:
     required: true
     type: string
   tf-config-path:
-    description: "Relative path to the directory containing Terraform configuration files (e.g., 'tf', 'infrastructure')."
+    description: "Relative path from the repository root to the Terraform configuration directory. This is where your main.tf, variables.tf, and other Terraform files are located."
     required: false
     type: string
     default: "tf"
