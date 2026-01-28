@@ -97,10 +97,12 @@ Snowflake authentication is handled via environment variables set by the calling
 
 #### Databricks Authentication (when `cloud-provider` is `databricks`)
 
-| Name                  | Description                                              | Required | Default   |
-|-----------------------|----------------------------------------------------------|----------|-----------|
-| `databricks-host`     | Databricks workspace URL (use secrets)                   | Yes*     | —         |
-| `databricks-token`    | Databricks personal access token (use secrets)           | Yes*     | —         |
+Databricks authentication is handled via environment variables set by the calling workflow. The action does not require Databricks-specific inputs - instead, set the following environment variables when calling the action:
+
+| Environment Variable    | Description                                              |
+|-------------------------|----------------------------------------------------------|
+| `DATABRICKS_HOST`       | Databricks workspace URL                                 |
+| `DATABRICKS_TOKEN`      | Databricks personal access token                         |
 
 **Note**: *Required only when the corresponding cloud provider is selected.
 
@@ -538,6 +540,8 @@ jobs:
 
 ### Databricks Cloud Provider
 
+Databricks authentication is handled via environment variables. Set the required environment variables when calling the action.
+
 #### Databricks with S3 Backend
 
 ```yaml
@@ -560,9 +564,10 @@ jobs:
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
           cloud-provider: databricks
-          databricks-host: ${{ secrets.DATABRICKS_HOST }}
-          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
           tf-vars-file: production.tfvars
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 ```
 
 > **Note:** Configure these values in your GitHub repository:
@@ -609,9 +614,10 @@ jobs:
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: databricks
-          databricks-host: ${{ secrets.DATABRICKS_HOST }}
-          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
           tf-vars-file: production.tfvars
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 ```
 
 > **Note:** Configure these values in your GitHub repository:
@@ -982,7 +988,18 @@ terraform {
    }
    ```
 
-5. **Best Practices**:
+5. **Pass Environment Variables When Calling the Action**:
+   ```yaml
+   - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+     with:
+       cloud-provider: databricks
+       # ... other inputs
+     env:
+       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+   ```
+
+6. **Best Practices**:
    - Use service principals instead of personal access tokens for production
    - Rotate tokens regularly
    - Set appropriate token lifetimes

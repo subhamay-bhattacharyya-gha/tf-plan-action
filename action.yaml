@@ -91,17 +91,6 @@ inputs:
     required: false
     type: string
 
-  # Databricks Authentication Secrets
-  databricks-host:
-    description: "Databricks workspace URL. Required when cloud-provider is 'databricks'."
-    required: false
-    type: string
-
-  databricks-token:
-    description: "Databricks personal access token. Required when cloud-provider is 'databricks'."
-    required: false
-    type: string
-
   # Terraform artifacts
   tf-plan-name:
     description: "Name of the Terraform plan file"
@@ -182,9 +171,8 @@ runs:
         echo "=== Snowflake Authentication ==="
         echo "Snowflake authentication is handled via environment variables set by the calling workflow"
         echo ""
-        echo "=== Databricks Authentication Inputs ==="
-        echo "databricks-host: ${{ inputs.databricks-host }}"
-        echo "databricks-token: [REDACTED - $(if [[ -n '${{ inputs.databricks-token }}' ]]; then echo 'PROVIDED'; else echo 'NOT PROVIDED'; fi)]"
+        echo "=== Databricks Authentication ==="
+        echo "Databricks authentication is handled via environment variables set by the calling workflow"
         echo "================================="
 
     # Validate input configuration
@@ -245,10 +233,7 @@ runs:
             echo "Snowflake authentication will be handled via environment variables set by the calling workflow"
             ;;
           "databricks")
-            if [[ -z "${{ inputs.databricks-host }}" || -z "${{ inputs.databricks-token }}" ]]; then
-              echo "Error: databricks-host and databricks-token are required when cloud-provider is 'databricks'"
-              exit 1
-            fi
+            echo "Databricks authentication will be handled via environment variables set by the calling workflow"
             ;;
           "platform")
             echo "Platform mode: Checking for cloud provider directories in infra/"
@@ -281,26 +266,6 @@ runs:
                 VALIDATION_ERRORS="${VALIDATION_ERRORS}\n- Azure: azure-client-id, azure-tenant-id, and azure-subscription-id are required"
               else
                 echo "  ✅ Azure inputs validated"
-              fi
-            fi
-
-            # Check for Snowflake directory
-            if [[ -d "infra/snowflake" ]]; then
-              echo "Found infra/snowflake directory - validating Snowflake inputs..."
-              if [[ -z "${{ inputs.snowflake-account }}" || -z "${{ inputs.snowflake-user }}" || -z "${{ inputs.snowflake-role }}" || -z "${{ inputs.snowflake-private-key }}" ]]; then
-                VALIDATION_ERRORS="${VALIDATION_ERRORS}\n- Snowflake: snowflake-account, snowflake-user, snowflake-role, and snowflake-private-key are required"
-              else
-                echo "  ✅ Snowflake inputs validated"
-              fi
-            fi
-
-            # Check for Databricks directory
-            if [[ -d "infra/databricks" ]]; then
-              echo "Found infra/databricks directory - validating Databricks inputs..."
-              if [[ -z "${{ inputs.databricks-host }}" || -z "${{ inputs.databricks-token }}" ]]; then
-                VALIDATION_ERRORS="${VALIDATION_ERRORS}\n- Databricks: databricks-host and databricks-token are required"
-              else
-                echo "  ✅ Databricks inputs validated"
               fi
             fi
 
