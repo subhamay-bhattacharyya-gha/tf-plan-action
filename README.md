@@ -86,12 +86,14 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 
 #### Snowflake Authentication (when `cloud-provider` is `snowflake`)
 
-| Name                  | Description                                              | Required | Default   |
-|-----------------------|----------------------------------------------------------|----------|-----------|
-| `snowflake-account`   | Snowflake account identifier                             | Yes*     | —         |
-| `snowflake-user`      | Snowflake user name                                      | Yes*     | —         |
-| `snowflake-role`      | Snowflake role name                                      | Yes*     | —         |
-| `snowflake-private-key` | Snowflake private key for authentication (use secrets) | Yes*     | —         |
+Snowflake authentication is handled via environment variables set by the calling workflow. The action does not require Snowflake-specific inputs - instead, set the following environment variables when calling the action:
+
+| Environment Variable    | Description                                              |
+|-------------------------|----------------------------------------------------------|
+| `SNOWFLAKE_ACCOUNT`     | Snowflake account identifier                             |
+| `SNOWFLAKE_USER`        | Snowflake user name                                      |
+| `SNOWFLAKE_ROLE`        | Snowflake role name                                      |
+| `SNOWFLAKE_PRIVATE_KEY` | Snowflake private key for authentication                 |
 
 #### Databricks Authentication (when `cloud-provider` is `databricks`)
 
@@ -439,6 +441,8 @@ jobs:
 
 ### Snowflake Cloud Provider
 
+Snowflake authentication is handled via environment variables. Set the required environment variables when calling the action.
+
 #### Snowflake with S3 Backend
 
 ```yaml
@@ -461,11 +465,12 @@ jobs:
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
           cloud-provider: snowflake
-          snowflake-account: ${{ vars.SNOWFLAKE_ACCOUNT }}
-          snowflake-user: ${{ vars.SNOWFLAKE_USER }}
-          snowflake-role: ${{ vars.SNOWFLAKE_ROLE }}
-          snowflake-private-key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
           tf-vars-file: production.tfvars
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
 ```
 
 > **Note:** Configure these values in your GitHub repository:
@@ -514,11 +519,12 @@ jobs:
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: snowflake
-          snowflake-account: ${{ vars.SNOWFLAKE_ACCOUNT }}
-          snowflake-user: ${{ vars.SNOWFLAKE_USER }}
-          snowflake-role: ${{ vars.SNOWFLAKE_ROLE }}
-          snowflake-private-key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
           tf-vars-file: production.tfvars
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
 ```
 
 > **Note:** Configure these values in your GitHub repository:
@@ -925,6 +931,19 @@ terraform {
    }
    ```
 
+6. **Pass Environment Variables When Calling the Action**:
+   ```yaml
+   - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+     with:
+       cloud-provider: snowflake
+       # ... other inputs
+     env:
+       SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+       SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
+       SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+       SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+   ```
+
 ### Setting up Databricks Authentication
 
 1. **Generate Personal Access Token**:
@@ -1038,10 +1057,6 @@ This repository includes example configurations in the `examples/` directory:
 - **`examples/tfc-backend/`**: Example Terraform configuration for HCP Terraform Cloud backend
 
 You can also find a complete workflow example in `.github/workflows/example.yml` that demonstrates both backend types.
-
-## 🔄 Migration Guide
-
-Migrating from S3 to HCP Terraform Cloud? Check out our [Migration Guide](MIGRATION.md) for step-by-step instructions.
 
 ## 🛠️ Advanced Usage
 

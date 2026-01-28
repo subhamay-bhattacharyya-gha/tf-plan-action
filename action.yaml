@@ -91,28 +91,6 @@ inputs:
     required: false
     type: string
 
-  # Snowflake Authentication Inputs
-  snowflake-account:
-    description: "Snowflake account identifier. Required when cloud-provider is 'snowflake'."
-    required: false
-    type: string
-
-  snowflake-user:
-    description: "Snowflake user name. Required when cloud-provider is 'snowflake'."
-    required: false
-    type: string
-
-  snowflake-role:
-    description: "Snowflake role name. Required when cloud-provider is 'snowflake'."
-    required: false
-    type: string
-
-  # Snowflake Authentication Secret
-  snowflake-private-key:
-    description: "Snowflake private key for authentication. Required when cloud-provider is 'snowflake'."
-    required: false
-    type: string
-
   # Databricks Authentication Secrets
   databricks-host:
     description: "Databricks workspace URL. Required when cloud-provider is 'databricks'."
@@ -201,11 +179,8 @@ runs:
         echo "azure-tenant-id: ${{ inputs.azure-tenant-id }}"
         echo "azure-subscription-id: ${{ inputs.azure-subscription-id }}"
         echo ""
-        echo "=== Snowflake Authentication Inputs ==="
-        echo "snowflake-account: ${{ inputs.snowflake-account }}"
-        echo "snowflake-user: ${{ inputs.snowflake-user }}"
-        echo "snowflake-role: ${{ inputs.snowflake-role }}"
-        echo "snowflake-private-key: [REDACTED - $(if [[ -n '${{ inputs.snowflake-private-key }}' ]]; then echo 'PROVIDED'; else echo 'NOT PROVIDED'; fi)]"
+        echo "=== Snowflake Authentication ==="
+        echo "Snowflake authentication is handled via environment variables set by the calling workflow"
         echo ""
         echo "=== Databricks Authentication Inputs ==="
         echo "databricks-host: ${{ inputs.databricks-host }}"
@@ -267,10 +242,7 @@ runs:
             fi
             ;;
           "snowflake")
-            if [[ -z "${{ inputs.snowflake-account }}" || -z "${{ inputs.snowflake-user }}" || -z "${{ inputs.snowflake-role }}" || -z "${{ inputs.snowflake-private-key }}" ]]; then
-              echo "Error: snowflake-account, snowflake-user, snowflake-role, and snowflake-private-key are required when cloud-provider is 'snowflake'"
-              exit 1
-            fi
+            echo "Snowflake authentication will be handled via environment variables set by the calling workflow"
             ;;
           "databricks")
             if [[ -z "${{ inputs.databricks-host }}" || -z "${{ inputs.databricks-token }}" ]]; then
@@ -454,15 +426,6 @@ runs:
       id: tf-plan
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.terraform-dir }}
-      env:
-        # Snowflake environment variables (if cloud-provider is snowflake)
-        SNOWFLAKE_ACCOUNT: ${{ inputs.cloud-provider == 'snowflake' && inputs.snowflake-account || '' }}
-        SNOWFLAKE_USER: ${{ inputs.cloud-provider == 'snowflake' && inputs.snowflake-user || '' }}
-        SNOWFLAKE_ROLE: ${{ inputs.cloud-provider == 'snowflake' && inputs.snowflake-role || '' }}
-        SNOWFLAKE_PRIVATE_KEY: ${{ inputs.cloud-provider == 'snowflake' && inputs.snowflake-private-key || '' }}
-        # Databricks environment variables (if cloud-provider is databricks)
-        DATABRICKS_HOST: ${{ inputs.cloud-provider == 'databricks' && inputs.databricks-host || '' }}
-        DATABRICKS_TOKEN: ${{ inputs.cloud-provider == 'databricks' && inputs.databricks-token || '' }}
       run: |
         echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
