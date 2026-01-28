@@ -371,15 +371,15 @@ runs:
     #############################################    
     - name: Configure AWS Authentication (OIDC)
       id: aws-auth
-      if: inputs.cloud-provider == 'aws'
-      uses: aws-actions/configure-aws-credentials@v5
+      if: inputs.cloud-provider == 'aws' || inputs.backend-type == 's3' || (inputs.cloud-provider == 'platform' && inputs.aws-role-to-assume != '') || (inputs.aws-role-to-assume != '' && inputs.aws-region != '')
+      uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ inputs.aws-role-to-assume }}
         aws-region: ${{ inputs.aws-region }}
 
     - name: Configure Azure Authentication (OIDC)
       id: azure-auth
-      if: inputs.cloud-provider == 'azure'
+      if: inputs.cloud-provider == 'azure' || (inputs.cloud-provider == 'platform' && inputs.azure-client-id != '')
       uses: azure/login@v2
       with:
         client-id: ${{ inputs.azure-client-id }}
@@ -388,8 +388,8 @@ runs:
 
     - name: Configure GCP Authentication (WIF)
       id: gcp-auth
-      if: inputs.cloud-provider == 'gcp'
-      uses: google-github-actions/auth@v3
+      if: inputs.cloud-provider == 'gcp' || (inputs.cloud-provider == 'platform' && inputs.gcp-wif-provider != '')
+      uses: google-github-actions/auth@v2
       with:
         workload_identity_provider: ${{ inputs.gcp-wif-provider }}
         service_account: ${{ inputs.gcp-service-account }}
