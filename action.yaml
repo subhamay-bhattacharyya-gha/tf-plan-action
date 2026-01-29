@@ -321,6 +321,7 @@ runs:
       with:
         client-id: ${{ inputs.azure-client-id }}
         tenant-id: ${{ inputs.azure-tenant-id }}
+
         subscription-id: ${{ inputs.azure-subscription-id }}
 
     - name: Configure GCP Authentication (WIF)
@@ -391,6 +392,12 @@ runs:
       id: tf-plan
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.tf-config-path }}
+      env:
+        SNOWFLAKE_PRIVATE_KEY: ${{ env.SNOWFLAKE_PRIVATE_KEY }}
+        SNOWFLAKE_ORGANIZATION_NAME: ${{ env.SNOWFLAKE_ORGANIZATION_NAME }}
+        SNOWFLAKE_ACCOUNT_NAME: ${{ env.SNOWFLAKE_ACCOUNT_NAME }}
+        SNOWFLAKE_USER: ${{ env.SNOWFLAKE_USER }}
+        SNOWFLAKE_ROLE: ${{ env.SNOWFLAKE_ROLE }}
       run: |
         echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
