@@ -1,3 +1,19 @@
+# [1.3.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.2.1...v1.3.0) (2026-02-26)
+
+
+### Bug Fixes
+
+* **action:** pass Snowflake environment variables to terraform plan ([e960195](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/e96019512e9b0dd1782a1469f7ec3718c01ed257))
+* **action:** simplify AWS authentication conditional logic ([cb7c299](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/cb7c299a60d4efbbbeeed3a226577a691951a5af))
+* migrate authentication to environment variables ([98c4242](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/98c42428705cb4cf230ac34edcb500880b1ec0f1))
+* migrate Snowflake authentication to environment variables ([7f42527](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/7f42527ca075871739d46e18f917a58ee1f39ed8))
+
+
+### Features
+
+* **action:** enhance cloud authentication for platform mode support ([cbb8a29](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/cbb8a299cef0388adf96cf4cbfbf2b4199e9add1))
+* add platform mode support for multi-cloud infrastructure ([505b09f](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/505b09fd3701a563cf5689bc59ac69945d1a2040))
+
 ## [1.2.1](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.2.0...v1.2.1) (2026-01-08)
 
 
