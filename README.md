@@ -2,7 +2,7 @@
 
 ![Release](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/actions/workflows/release.yaml/badge.svg)&nbsp;![Commit Activity](https://img.shields.io/github/commit-activity/t/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Last Commit](https://img.shields.io/github/last-commit/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Release Date](https://img.shields.io/github/release-date/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Repo Size](https://img.shields.io/github/repo-size/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![File Count](https://img.shields.io/github/directory-file-count/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Issues](https://img.shields.io/github/issues/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Top Language](https://img.shields.io/github/languages/top/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Custom Endpoint](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bsubhamay/4b78231973ba23bf79edc938aa3c2db5/raw/tf-plan-action.json?)
 
-A comprehensive GitHub composite action for running `terraform plan` with support for multiple backends (S3, HCP Terraform Cloud) and multi-cloud authentication (AWS, GCP, Azure, Snowflake, Databricks) using OIDC/Workload Identity Federation.
+A comprehensive GitHub composite action for running `terraform plan` with support for multiple backends (S3, HCP Terraform Cloud) and multi-cloud authentication (AWS, GCP, Azure, Snowflake, Databricks) using OIDC/Workload Identity Federation. Also supports platform mode for multi-cloud infrastructure projects.
 
 ---
 
@@ -17,6 +17,7 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
   - **Azure**: Service principal authentication via OIDC
   - **Snowflake**: Private key authentication for secure data platform access
   - **Databricks**: Personal access token authentication for unified analytics platform
+- **🏗️ Platform Mode**: Automatic detection and validation of multi-cloud infrastructure in `infra/` directories
 - **� CI/CD Oyptimized**: Commit-SHA-based state isolation for parallel pipeline execution
 - **📦 Artifact Management**: Automatic upload of plan files (`tfplan.out` and `plan.txt`) as GitHub artifacts
 - **📊 Rich Output**: Formatted Terraform plan output in GitHub Actions summary with syntax highlighting
@@ -32,7 +33,7 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 
 | Name              | Description                                              | Required | Default   |
 |-------------------|----------------------------------------------------------|----------|-----------|
-| `terraform-dir`   | Path to the Terraform configuration directory            | No       | `tf`      |
+| `tf-config-path`   | Path to the Terraform configuration directory            | No       | `tf`      |
 | `release-tag`     | Git release tag to check out                             | No       | `""`      |
 | `ci-pipeline`     | Boolean string (`"true"` or `"false"`) for SHA-isolated state | No       | `false`   |
 | `backend-type`    | Backend type: `s3` or `remote` (HCP Terraform Cloud)     | No       | `s3`      |
@@ -59,7 +60,7 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 
 | Name                  | Description                                              | Required | Default   |
 |-----------------------|----------------------------------------------------------|----------|-----------|
-| `cloud-provider`      | Cloud service provider: `aws`, `gcp`, `azure`, `snowflake`, or `databricks` | Yes      | —         |
+| `cloud-provider`      | Target cloud provider or platform (aws, gcp, azure, snowflake, databricks, platform) | Yes      | —         |
 
 #### AWS Authentication (when `cloud-provider` is `aws`)
 
@@ -85,19 +86,23 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 
 #### Snowflake Authentication (when `cloud-provider` is `snowflake`)
 
-| Name                  | Description                                              | Required | Default   |
-|-----------------------|----------------------------------------------------------|----------|-----------|
-| `snowflake-account`   | Snowflake account identifier                             | Yes*     | —         |
-| `snowflake-user`      | Snowflake user name                                      | Yes*     | —         |
-| `snowflake-role`      | Snowflake role name                                      | Yes*     | —         |
-| `snowflake-private-key` | Snowflake private key for authentication (use secrets) | Yes*     | —         |
+Snowflake authentication is handled via environment variables set by the calling workflow. The action does not require Snowflake-specific inputs - instead, set the following environment variables when calling the action:
+
+| Environment Variable    | Description                                              |
+|-------------------------|----------------------------------------------------------|
+| `SNOWFLAKE_ACCOUNT`     | Snowflake account identifier                             |
+| `SNOWFLAKE_USER`        | Snowflake user name                                      |
+| `SNOWFLAKE_ROLE`        | Snowflake role name                                      |
+| `SNOWFLAKE_PRIVATE_KEY` | Snowflake private key for authentication                 |
 
 #### Databricks Authentication (when `cloud-provider` is `databricks`)
 
-| Name                  | Description                                              | Required | Default   |
-|-----------------------|----------------------------------------------------------|----------|-----------|
-| `databricks-host`     | Databricks workspace URL (use secrets)                   | Yes*     | —         |
-| `databricks-token`    | Databricks personal access token (use secrets)           | Yes*     | —         |
+Databricks authentication is handled via environment variables set by the calling workflow. The action does not require Databricks-specific inputs - instead, set the following environment variables when calling the action:
+
+| Environment Variable    | Description                                              |
+|-------------------------|----------------------------------------------------------|
+| `DATABRICKS_HOST`       | Databricks workspace URL                                 |
+| `DATABRICKS_TOKEN`      | Databricks personal access token                         |
 
 **Note**: *Required only when the corresponding cloud provider is selected.
 
@@ -120,7 +125,7 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 ```yaml
 - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
   with:
-    cloud-provider: gcp  # or aws, azure, snowflake, databricks
+    cloud-provider: gcp  # or aws, azure, snowflake, databricks, platform
     # Add your cloud-specific authentication inputs
     gcp-wif-provider: ${{ secrets.GCP_WIF_PROVIDER }}
     gcp-service-account: ${{ secrets.GCP_BOOTSTRAP_SA }}
@@ -154,7 +159,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: tf/
+          tf-config-path: tf/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
@@ -204,7 +209,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: aws
@@ -239,7 +244,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
@@ -289,7 +294,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: gcp
@@ -324,7 +329,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
@@ -376,7 +381,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: azure
@@ -412,7 +417,7 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: azure
@@ -438,6 +443,8 @@ jobs:
 
 ### Snowflake Cloud Provider
 
+Snowflake authentication is handled via environment variables. Set the required environment variables when calling the action.
+
 #### Snowflake with S3 Backend
 
 ```yaml
@@ -455,16 +462,17 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
           cloud-provider: snowflake
-          snowflake-account: ${{ vars.SNOWFLAKE_ACCOUNT }}
-          snowflake-user: ${{ vars.SNOWFLAKE_USER }}
-          snowflake-role: ${{ vars.SNOWFLAKE_ROLE }}
-          snowflake-private-key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
           tf-vars-file: production.tfvars
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
 ```
 
 > **Note:** Configure these values in your GitHub repository:
@@ -509,15 +517,16 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: snowflake
-          snowflake-account: ${{ vars.SNOWFLAKE_ACCOUNT }}
-          snowflake-user: ${{ vars.SNOWFLAKE_USER }}
-          snowflake-role: ${{ vars.SNOWFLAKE_ROLE }}
-          snowflake-private-key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
           tf-vars-file: production.tfvars
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
 ```
 
 > **Note:** Configure these values in your GitHub repository:
@@ -530,6 +539,8 @@ jobs:
 > Store all authentication tokens and private keys as GitHub repository secrets for security. Configure your backend settings directly in your Terraform files.
 
 ### Databricks Cloud Provider
+
+Databricks authentication is handled via environment variables. Set the required environment variables when calling the action.
 
 #### Databricks with S3 Backend
 
@@ -548,14 +559,15 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: s3
           s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
           s3-region: ${{ vars.AWS_REGION }}
           cloud-provider: databricks
-          databricks-host: ${{ secrets.DATABRICKS_HOST }}
-          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
           tf-vars-file: production.tfvars
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 ```
 
 > **Note:** Configure these values in your GitHub repository:
@@ -598,13 +610,14 @@ jobs:
     steps:
       - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
         with:
-          terraform-dir: infrastructure/
+          tf-config-path: infrastructure/
           backend-type: remote
           tfc-token: ${{ secrets.TFC_API_TOKEN }}
           cloud-provider: databricks
-          databricks-host: ${{ secrets.DATABRICKS_HOST }}
-          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
           tf-vars-file: production.tfvars
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 ```
 
 > **Note:** Configure these values in your GitHub repository:
@@ -613,6 +626,119 @@ jobs:
 > - `DATABRICKS_TOKEN` (Secret): Your Databricks personal access token
 > 
 > Store all authentication tokens as GitHub repository secrets for security. Configure your backend settings directly in your Terraform files.
+
+### Platform Mode (Multi-Cloud Infrastructure)
+
+Platform mode automatically detects cloud provider directories in your `infra/` folder and validates the required inputs for each detected platform. This is ideal for projects that manage infrastructure across multiple cloud providers.
+
+#### Directory Structure
+
+```
+your-repo/
+├── infra/
+│   ├── aws/           # AWS infrastructure (detected automatically)
+│   │   └── main.tf
+│   ├── gcp/           # GCP infrastructure (detected automatically)
+│   │   └── main.tf
+│   ├── azure/         # Azure infrastructure (detected automatically)
+│   │   └── main.tf
+│   ├── snowflake/     # Snowflake infrastructure (detected automatically)
+│   │   └── main.tf
+│   └── databricks/    # Databricks infrastructure (detected automatically)
+│       └── main.tf
+└── .github/
+    └── workflows/
+        └── terraform.yml
+```
+
+#### Platform Mode with S3 Backend
+
+```yaml
+name: Terraform Plan - Platform Mode with S3 Backend
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+        with:
+          tf-config-path: infra/
+          backend-type: s3
+          s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
+          s3-region: ${{ vars.AWS_REGION }}
+          cloud-provider: platform
+          # AWS inputs (if infra/aws exists)
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          # GCP inputs (if infra/gcp exists)
+          gcp-wif-provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          gcp-service-account: ${{ secrets.GCP_BOOTSTRAP_SA }}
+          # Azure inputs (if infra/azure exists)
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          # Snowflake inputs (if infra/snowflake exists)
+          snowflake-account: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake-user: ${{ vars.SNOWFLAKE_USER }}
+          snowflake-role: ${{ vars.SNOWFLAKE_ROLE }}
+          snowflake-private-key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+          # Databricks inputs (if infra/databricks exists)
+          databricks-host: ${{ secrets.DATABRICKS_HOST }}
+          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
+          tf-vars-file: production.tfvars
+```
+
+#### Platform Mode with HCP Terraform Cloud Backend
+
+```yaml
+name: Terraform Plan - Platform Mode with HCP Terraform Cloud
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+        with:
+          tf-config-path: infra/
+          backend-type: remote
+          tfc-token: ${{ secrets.TFC_API_TOKEN }}
+          cloud-provider: platform
+          # Provide inputs for all platforms that exist in infra/
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          gcp-wif-provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          gcp-service-account: ${{ secrets.GCP_BOOTSTRAP_SA }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          snowflake-account: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          snowflake-user: ${{ vars.SNOWFLAKE_USER }}
+          snowflake-role: ${{ vars.SNOWFLAKE_ROLE }}
+          snowflake-private-key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+          databricks-host: ${{ secrets.DATABRICKS_HOST }}
+          databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
+          tf-vars-file: production.tfvars
+```
+
+> **Note:** In platform mode, the action automatically detects which cloud provider directories exist in your `infra/` folder and validates only the required inputs for those platforms. You only need to provide credentials for the platforms you're actually using.
+>
+> **How it works:**
+> - The action scans for directories: `infra/aws`, `infra/gcp`, `infra/azure`, `infra/snowflake`, `infra/databricks`
+> - For each detected directory, it validates that the corresponding authentication inputs are provided
+> - If any required inputs are missing for a detected platform, the action fails with a clear error message
+> - Inputs for platforms that don't exist in your `infra/` folder are ignored
 
 ## ⚙️ Setup Guides
 
@@ -811,6 +937,19 @@ terraform {
    }
    ```
 
+6. **Pass Environment Variables When Calling the Action**:
+   ```yaml
+   - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+     with:
+       cloud-provider: snowflake
+       # ... other inputs
+     env:
+       SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+       SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
+       SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+       SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+   ```
+
 ### Setting up Databricks Authentication
 
 1. **Generate Personal Access Token**:
@@ -849,12 +988,57 @@ terraform {
    }
    ```
 
-5. **Best Practices**:
+5. **Pass Environment Variables When Calling the Action**:
+   ```yaml
+   - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+     with:
+       cloud-provider: databricks
+       # ... other inputs
+     env:
+       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+   ```
+
+6. **Best Practices**:
    - Use service principals instead of personal access tokens for production
    - Rotate tokens regularly
    - Set appropriate token lifetimes
    - Use workspace-level tokens for workspace-specific resources
    - Use account-level tokens for account-level resources
+
+### Setting up Platform Mode
+
+Platform mode is designed for multi-cloud infrastructure projects. Here's how to set it up:
+
+1. **Organize Your Infrastructure**:
+   ```
+   infra/
+   ├── aws/           # AWS resources
+   │   ├── main.tf
+   │   ├── variables.tf
+   │   └── outputs.tf
+   ├── gcp/           # GCP resources
+   │   ├── main.tf
+   │   ├── variables.tf
+   │   └── outputs.tf
+   └── shared/        # Shared modules (not auto-detected)
+       └── modules/
+   ```
+
+2. **Configure All Required Secrets and Variables**:
+   - Set up authentication for each cloud provider you're using
+   - Follow the individual setup guides above for each platform
+   - Only configure credentials for platforms that exist in your `infra/` directory
+
+3. **Use Platform Mode in Your Workflow**:
+   ```yaml
+   cloud-provider: platform
+   ```
+
+4. **Validation Behavior**:
+   - The action scans `infra/` for subdirectories matching: `aws`, `gcp`, `azure`, `snowflake`, `databricks`
+   - Only validates inputs for detected platforms
+   - Fails fast with clear error messages if required inputs are missing
 
 ### Setting up S3 Backend
 
@@ -890,10 +1074,6 @@ This repository includes example configurations in the `examples/` directory:
 - **`examples/tfc-backend/`**: Example Terraform configuration for HCP Terraform Cloud backend
 
 You can also find a complete workflow example in `.github/workflows/example.yml` that demonstrates both backend types.
-
-## 🔄 Migration Guide
-
-Migrating from S3 to HCP Terraform Cloud? Check out our [Migration Guide](MIGRATION.md) for step-by-step instructions.
 
 ## 🛠️ Advanced Usage
 
@@ -933,7 +1113,7 @@ strategy:
 steps:
   - uses: subhamay-bhattacharyya-gha/tf-plan-action@main
     with:
-      terraform-dir: environments/${{ matrix.environment }}
+      tf-config-path: environments/${{ matrix.environment }}
       cloud-provider: ${{ matrix.cloud }}
       tf-vars-file: ${{ matrix.environment }}.tfvars
       # Add cloud-specific authentication inputs based on matrix.cloud
@@ -984,7 +1164,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - **Terraform**: >= 1.0
 - **GitHub Actions Runner**: ubuntu-latest, windows-latest, or macos-latest
 - **Permissions**: `contents: read`, `id-token: write` (required for OIDC authentication)
-- **Cloud Provider**: Must specify one of `aws`, `gcp`, `azure`, `snowflake`, or `databricks` with corresponding authentication setup
+- **Cloud Provider**: Must specify one of `aws`, `gcp`, `azure`, `snowflake`, `databricks`, or `platform` with corresponding authentication setup
 - **Backend Configuration**: Either S3 bucket setup or HCP Terraform Cloud workspace configuration
 
 ## 🔗 Related Actions
