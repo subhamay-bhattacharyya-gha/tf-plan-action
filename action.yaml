@@ -302,7 +302,7 @@ runs:
 
     - name: Setup Terraform
       id: setup-terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@v4
 
     #  Cloud Provider Authentication (OIDC)
     #############################################    
