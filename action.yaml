@@ -317,7 +317,7 @@ runs:
     - name: Configure Azure Authentication (OIDC)
       id: azure-auth
       if: inputs.cloud-provider == 'azure' || (inputs.cloud-provider == 'platform' && inputs.azure-client-id != '')
-      uses: azure/login@v2
+      uses: azure/login@v3
       with:
         client-id: ${{ inputs.azure-client-id }}
         tenant-id: ${{ inputs.azure-tenant-id }}
