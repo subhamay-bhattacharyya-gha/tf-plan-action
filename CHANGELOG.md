@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.3.0...v1.4.0) (2026-04-14)
+
+
+### Features
+
+* expose tfplan.binary and tfplan.json outputs to caller working directory ([8dd8af8](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/8dd8af8cd83009863c1ee006c91745746b019d84))
+
 # [1.3.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.2.1...v1.3.0) (2026-02-26)
 
 
