@@ -110,9 +110,52 @@ Databricks authentication is handled via environment variables set by the callin
 
 ## 📤 Outputs
 
-| Name           | Description                      |
-|----------------|----------------------------------|
-| `plan-status`  | Status of the `terraform plan` step |
+| Name               | Description                                                                                   |
+|--------------------|-----------------------------------------------------------------------------------------------|
+| `plan-status`      | Status of the `terraform plan` step                                                           |
+| `plan-binary-path` | Path (relative to `tf-config-path`) to the binary Terraform plan file. Always `tfplan.binary`. |
+| `plan-json-path`   | Path (relative to `tf-config-path`) to the JSON plan export. Always `tfplan.json`.             |
+
+### Files written to the caller's working directory
+
+After the action runs, both files live inside the caller's `tf-config-path` directory so downstream steps can consume them with `working-directory: <tf-config-path>`:
+
+- `tfplan.binary` — binary plan produced by `terraform plan -out=tfplan.binary`. Required input to `terraform show`, `terraform apply`, and plan-introspection tooling.
+- `tfplan.json` — JSON representation produced by `terraform show -json tfplan.binary`. Consumable by Checkov, OPA/Conftest, custom policy scripts, etc.
+
+Both files are also uploaded together under the artifact named by `tf-plan-name` (default `terraform-plan`).
+
+### Consuming `tfplan.json` without re-running `terraform plan`
+
+```yaml
+jobs:
+  plan-and-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: tfplan
+        uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+        with:
+          cloud-provider: aws
+          tf-config-path: infra/aws/tf
+          backend-type: s3
+          s3-bucket: ${{ vars.AWS_TF_STATE_BUCKET }}
+          s3-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      # No second `terraform plan` needed — feed tfplan.json straight to Checkov.
+      - name: Checkov scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          working_directory: infra/aws/tf
+          file: ${{ steps.tfplan.outputs.plan-json-path }}
+          framework: terraform_plan
+```
 
 ---
 

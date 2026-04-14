@@ -111,6 +111,12 @@ outputs:
   plan-status:
     description: "Result of terraform plan"
     value: ${{ steps.tf-plan.outcome }}
+  plan-binary-path:
+    description: "Path (relative to the caller's working-directory / tf-config-path) to the binary Terraform plan file, e.g. 'tfplan.binary'."
+    value: ${{ steps.tf-plan.outputs.plan-binary-path }}
+  plan-json-path:
+    description: "Path (relative to the caller's working-directory / tf-config-path) to the JSON representation of the Terraform plan, e.g. 'tfplan.json'."
+    value: ${{ steps.tf-plan-json.outputs.plan-json-path }}
 
 runs:
   using: "composite"
@@ -393,6 +399,7 @@ runs:
       shell: bash
       working-directory: ${{ github.workspace }}/${{ inputs.tf-config-path }}
       env:
+        TF_TOKEN_app_terraform_io: ${{ inputs.tfc-token }}
         SNOWFLAKE_PRIVATE_KEY: ${{ env.SNOWFLAKE_PRIVATE_KEY }}
         SNOWFLAKE_ORGANIZATION_NAME: ${{ env.SNOWFLAKE_ORGANIZATION_NAME }}
         SNOWFLAKE_ACCOUNT_NAME: ${{ env.SNOWFLAKE_ACCOUNT_NAME }}
@@ -401,11 +408,27 @@ runs:
       run: |
         echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        terraform plan -input=false -out=${{ inputs.tf-plan-file }}.out -var-file=${{ inputs.tf-vars-file }}
-        terraform show -no-color ${{ inputs.tf-plan-file }}.out > ${{ inputs.tf-plan-file }}.txt
+        terraform plan -input=false -out=tfplan.binary -var-file=${{ inputs.tf-vars-file }}
+        terraform show -no-color tfplan.binary > ${{ inputs.tf-plan-file }}.txt
         echo "\`\`\`hcl" >> $GITHUB_STEP_SUMMARY
         cat ${{ inputs.tf-plan-file }}.txt >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        echo "plan-binary-path=tfplan.binary" >> "$GITHUB_OUTPUT"
+
+    - name: Export Terraform Plan as JSON
+      id: tf-plan-json
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.tf-config-path }}
+      env:
+        TF_TOKEN_app_terraform_io: ${{ inputs.tfc-token }}
+        SNOWFLAKE_PRIVATE_KEY: ${{ env.SNOWFLAKE_PRIVATE_KEY }}
+        SNOWFLAKE_ORGANIZATION_NAME: ${{ env.SNOWFLAKE_ORGANIZATION_NAME }}
+        SNOWFLAKE_ACCOUNT_NAME: ${{ env.SNOWFLAKE_ACCOUNT_NAME }}
+        SNOWFLAKE_USER: ${{ env.SNOWFLAKE_USER }}
+        SNOWFLAKE_ROLE: ${{ env.SNOWFLAKE_ROLE }}
+      run: |
+        terraform show -json tfplan.binary > tfplan.json
+        echo "plan-json-path=tfplan.json" >> "$GITHUB_OUTPUT"
 
     - name: Upload Plan Output as Artifact
       id: upload-plan-artifact
@@ -413,7 +436,8 @@ runs:
       with:
         name: ${{ inputs.tf-plan-name }}
         path: |
-          ${{ github.workspace }}/${{ inputs.tf-config-path }}/${{ inputs.tf-plan-file }}.out
+          ${{ github.workspace }}/${{ inputs.tf-config-path }}/tfplan.binary
+          ${{ github.workspace }}/${{ inputs.tf-config-path }}/tfplan.json
 
     - name: Cleanup Terraform Cloud Credentials
       id: cleanup-tfc-credentials
