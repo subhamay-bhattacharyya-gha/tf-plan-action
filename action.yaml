@@ -107,6 +107,11 @@ inputs:
     required: false
     default: "terraform.tfvars"
 
+  verbose-plan-output:
+    description: "If true, streams the full terraform plan output to the step log. Default false (summary only)."
+    required: false
+    default: "false"
+
 outputs:
   plan-status:
     description: "Result of terraform plan"
@@ -117,6 +122,21 @@ outputs:
   plan-json-path:
     description: "Path (relative to the caller's working-directory / tf-config-path) to the JSON representation of the Terraform plan, e.g. 'tfplan.json'."
     value: ${{ steps.tf-plan-json.outputs.plan-json-path }}
+  run-url:
+    description: "HCP Terraform run URL (empty for S3 backend)."
+    value: ${{ steps.tf-plan-summary.outputs.run-url }}
+  plan-summary:
+    description: "One-line summary: 'X to add, Y to change, Z to destroy'."
+    value: ${{ steps.tf-plan-summary.outputs.plan-summary }}
+  resources-to-add:
+    description: "Number of resources to be created."
+    value: ${{ steps.tf-plan-summary.outputs.resources-to-add }}
+  resources-to-change:
+    description: "Number of resources to be updated."
+    value: ${{ steps.tf-plan-summary.outputs.resources-to-change }}
+  resources-to-destroy:
+    description: "Number of resources to be destroyed."
+    value: ${{ steps.tf-plan-summary.outputs.resources-to-destroy }}
 
 runs:
   using: "composite"
@@ -406,13 +426,12 @@ runs:
         SNOWFLAKE_USER: ${{ env.SNOWFLAKE_USER }}
         SNOWFLAKE_ROLE: ${{ env.SNOWFLAKE_ROLE }}
       run: |
-        echo "### Terraform Plan" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        terraform plan -input=false -out=tfplan.binary -var-file=${{ inputs.tf-vars-file }}
-        terraform show -no-color tfplan.binary > ${{ inputs.tf-plan-file }}.txt
-        echo "\`\`\`hcl" >> $GITHUB_STEP_SUMMARY
-        cat ${{ inputs.tf-plan-file }}.txt >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        set -o pipefail
+        if [[ "${{ inputs.verbose-plan-output }}" == "true" ]]; then
+          terraform plan -input=false -out=tfplan.binary -var-file=${{ inputs.tf-vars-file }} 2>&1 | tee plan.log
+        else
+          terraform plan -input=false -out=tfplan.binary -var-file=${{ inputs.tf-vars-file }} > plan.log 2>&1 || { cat plan.log; exit 1; }
+        fi
         echo "plan-binary-path=tfplan.binary" >> "$GITHUB_OUTPUT"
 
     - name: Export Terraform Plan as JSON
@@ -430,6 +449,44 @@ runs:
         terraform show -json tfplan.binary > tfplan.json
         echo "plan-json-path=tfplan.json" >> "$GITHUB_OUTPUT"
 
+    - name: Build Plan Summary
+      id: tf-plan-summary
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.tf-config-path }}
+      run: |
+        RUN_URL=""
+        if [[ "${{ inputs.backend-type }}" == "remote" ]]; then
+          RUN_URL=$(grep -oE 'https://app\.terraform\.io/app/[^ ]+/runs/run-[A-Za-z0-9]+' plan.log | head -1 || true)
+        fi
+        echo "run-url=$RUN_URL" >> "$GITHUB_OUTPUT"
+
+        CREATE=$(jq  '[.resource_changes[]?  | select(.change.actions == ["create"])]          | length' tfplan.json)
+        UPDATE=$(jq  '[.resource_changes[]?  | select(.change.actions == ["update"])]          | length' tfplan.json)
+        DELETE=$(jq  '[.resource_changes[]?  | select(.change.actions == ["delete"])]          | length' tfplan.json)
+        REPLACE=$(jq '[.resource_changes[]?  | select(.change.actions == ["delete","create"])] | length' tfplan.json)
+        NOOP=$(jq    '[.resource_changes[]?  | select(.change.actions == ["no-op"])]           | length' tfplan.json)
+
+        echo "resources-to-add=$CREATE"        >> "$GITHUB_OUTPUT"
+        echo "resources-to-change=$UPDATE"     >> "$GITHUB_OUTPUT"
+        echo "resources-to-destroy=$DELETE"    >> "$GITHUB_OUTPUT"
+        echo "plan-summary=$CREATE to add, $UPDATE to change, $DELETE to destroy" >> "$GITHUB_OUTPUT"
+
+        {
+          echo "## 📋 Terraform Plan Summary — ${{ inputs.cloud-provider }}"
+          echo ""
+          if [[ -n "$RUN_URL" ]]; then
+            echo "🔗 [View full plan in HCP Terraform]($RUN_URL)"
+            echo ""
+          fi
+          echo "| Action     | Count   |"
+          echo "|------------|---------|"
+          echo "| ➕ Create   | $CREATE  |"
+          echo "| 🔄 Update   | $UPDATE  |"
+          echo "| ❌ Delete   | $DELETE  |"
+          echo "| ♻️  Replace  | $REPLACE |"
+          echo "| ⏸️  No-op    | $NOOP    |"
+        } >> "$GITHUB_STEP_SUMMARY"
+
     - name: Upload Plan Output as Artifact
       id: upload-plan-artifact
       uses: actions/upload-artifact@v7
@@ -438,6 +495,14 @@ runs:
         path: |
           ${{ github.workspace }}/${{ inputs.tf-config-path }}/tfplan.binary
           ${{ github.workspace }}/${{ inputs.tf-config-path }}/tfplan.json
+
+    - name: Upload plan log
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: tfplan-log-${{ inputs.cloud-provider }}
+        path: ${{ github.workspace }}/${{ inputs.tf-config-path }}/plan.log
+        retention-days: 1
 
     - name: Cleanup Terraform Cloud Credentials
       id: cleanup-tfc-credentials

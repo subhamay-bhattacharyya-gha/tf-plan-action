@@ -40,6 +40,7 @@ A comprehensive GitHub composite action for running `terraform plan` with suppor
 | `tf-plan-name`    | Name of the Terraform plan file                          | No       | `terraform-plan` |
 | `tf-plan-file`    | File to save the Terraform plan output                   | No       | `tfplan`  |
 | `tf-vars-file`    | Optional Terraform variable file                         | No       | `terraform.tfvars` |
+| `verbose-plan-output` | If `"true"`, streams the full `terraform plan` output to the step log. Default `"false"` prints only the summary + HCP run URL; on failure the full log is always dumped. | No | `false` |
 
 ### S3 Backend Inputs (required when `backend-type` is `s3`)
 
@@ -110,11 +111,40 @@ Databricks authentication is handled via environment variables set by the callin
 
 ## 📤 Outputs
 
-| Name               | Description                                                                                   |
-|--------------------|-----------------------------------------------------------------------------------------------|
-| `plan-status`      | Status of the `terraform plan` step                                                           |
-| `plan-binary-path` | Path (relative to `tf-config-path`) to the binary Terraform plan file. Always `tfplan.binary`. |
-| `plan-json-path`   | Path (relative to `tf-config-path`) to the JSON plan export. Always `tfplan.json`.             |
+| Name                    | Description                                                                                   |
+|-------------------------|-----------------------------------------------------------------------------------------------|
+| `plan-status`           | Status of the `terraform plan` step                                                           |
+| `plan-binary-path`      | Path (relative to `tf-config-path`) to the binary Terraform plan file. Always `tfplan.binary`. |
+| `plan-json-path`        | Path (relative to `tf-config-path`) to the JSON plan export. Always `tfplan.json`.             |
+| `run-url`               | HCP Terraform run URL extracted from the plan log. Empty string for `backend-type: s3`.        |
+| `plan-summary`          | One-line summary: `"X to add, Y to change, Z to destroy"`.                                     |
+| `resources-to-add`      | Count of resources with action `["create"]`.                                                  |
+| `resources-to-change`   | Count of resources with action `["update"]`.                                                  |
+| `resources-to-destroy`  | Count of resources with action `["delete"]`.                                                  |
+
+### Step summary rendering
+
+With `verbose-plan-output: false` (the default) the full `terraform plan` stream is suppressed from the step log; instead the step summary renders:
+
+```markdown
+## 📋 Terraform Plan Summary — aws
+
+🔗 [View full plan in HCP Terraform](https://app.terraform.io/app/my-org/my-ws/runs/run-abc123)
+
+| Action     | Count   |
+|------------|---------|
+| ➕ Create   | 4       |
+| 🔄 Update   | 1       |
+| ❌ Delete   | 0       |
+| ♻️  Replace  | 0       |
+| ⏸️  No-op    | 12      |
+```
+
+The HCP link row is omitted when `backend-type: s3`. On plan failure the full `plan.log` is dumped to the step log regardless of `verbose-plan-output`, so errors stay diagnosable.
+
+### `plan.log` artifact
+
+The raw plan stream is always uploaded as an artifact named `tfplan-log-<cloud-provider>` (retention 1 day) so the full log is recoverable from the run page even when suppressed from the live step log.
 
 ### Files written to the caller's working directory
 
