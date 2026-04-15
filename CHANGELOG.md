@@ -1,3 +1,12 @@
+# [1.5.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.4.0...v1.5.0) (2026-04-15)
+
+
+### Features
+
+* add example Terraform plan workflows for S3 and HCP Terraform Cloud ([516542b](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/516542bbdd178e65aad4af35dfbd73b8d985dc34))
+* print plan summary with HCP run URL instead of full plan output ([5f767b5](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/5f767b56d5f39984a527833f6c947c2542e516b9))
+* update CODEOWNERS to reflect new team ownership ([7851505](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/7851505dfb352392503e1b51ac3c797d65efbc9f))
+
 # [1.4.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.3.0...v1.4.0) (2026-04-14)
 
 
