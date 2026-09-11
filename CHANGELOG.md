@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.5.0...v1.6.0) (2026-09-11)
+
+
+### Features
+
+* rename workflow for clarity in branch creation ([7dbef1d](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/7dbef1dec15ed9ed79082a9beba6b135a5b1c821))
+
 # [1.5.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.4.0...v1.5.0) (2026-04-15)
 
 
