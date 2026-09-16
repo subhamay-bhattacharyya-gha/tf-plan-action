@@ -1,3 +1,15 @@
+# [1.7.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.6.0...v1.7.0) (2026-09-16)
+
+
+### Bug Fixes
+
+* remove unnecessary markdown code block from Terraform Plan Summary section ([3f5304d](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/3f5304d479dffa66279b4b6a19efe73b6e8436b4))
+
+
+### Features
+
+* add README documentation guidelines for tf-plan-action and terraform-plan skills ([552970d](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commit/552970dffb67993140278293fcefcef3caa4bed2))
+
 # [1.6.0](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/compare/v1.5.0...v1.6.0) (2026-09-11)
 
 
