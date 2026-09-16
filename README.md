@@ -139,7 +139,6 @@ Databricks authentication is handled via environment variables set by the callin
 
 With `verbose-plan-output: false` (the default) the full `terraform plan` stream is suppressed from the step log; instead the step summary renders:
 
-```markdown
 ## 📋 Terraform Plan Summary — aws
 
 🔗 [View full plan in HCP Terraform](https://app.terraform.io/app/my-org/my-ws/runs/run-abc123)
@@ -151,7 +150,6 @@ With `verbose-plan-output: false` (the default) the full `terraform plan` stream
 | ❌ Delete   | 0       |
 | ♻️  Replace  | 0       |
 | ⏸️  No-op    | 12      |
-```
 
 The HCP link row is omitted when `backend-type: s3`. On plan failure the full `plan.log` is dumped to the step log regardless of `verbose-plan-output`, so errors stay diagnosable.
 
