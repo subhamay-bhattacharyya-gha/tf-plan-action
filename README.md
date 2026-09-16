@@ -1,6 +1,19 @@
 # GitHub Action: Terraform Plan
 
-![Release](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/actions/workflows/release.yaml/badge.svg)&nbsp;![Commit Activity](https://img.shields.io/github/commit-activity/t/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Last Commit](https://img.shields.io/github/last-commit/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Release Date](https://img.shields.io/github/release-date/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Repo Size](https://img.shields.io/github/repo-size/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![File Count](https://img.shields.io/github/directory-file-count/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Issues](https://img.shields.io/github/issues/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Top Language](https://img.shields.io/github/languages/top/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;![Custom Endpoint](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bsubhamay/4b78231973ba23bf79edc938aa3c2db5/raw/tf-plan-action.json?)
+<!-- Row 1: Status - Most Important -->
+[![Release](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/actions/workflows/release.yaml/badge.svg)](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;[![GitHub Action](https://img.shields.io/badge/GitHub-Action-blue?logo=github)](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;[![Issues](https://img.shields.io/github/issues/subhamay-bhattacharyya-gha/tf-plan-action)](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/issues)&nbsp;[![Last Commit](https://img.shields.io/github/last-commit/subhamay-bhattacharyya-gha/tf-plan-action)](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commits)
+
+<!-- Row 2: Code Quality -->
+[![Top Language](https://img.shields.io/github/languages/top/subhamay-bhattacharyya-gha/tf-plan-action)](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;[![Commits](https://img.shields.io/github/commit-activity/t/subhamay-bhattacharyya-gha/tf-plan-action)](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/commits)
+
+<!-- Row 3: Tech Stack -->
+[![Terraform](https://img.shields.io/badge/Terraform-IaC-blueviolet?logo=terraform&logoColor=white)](https://www.terraform.io/)&nbsp;[![Built with Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-D97757?logo=anthropic&logoColor=white)](https://claude.ai/)
+
+<!-- Row 4: Repository Info -->
+[![Files](https://img.shields.io/github/directory-file-count/subhamay-bhattacharyya-gha/tf-plan-action)](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;[![Repo Size](https://img.shields.io/github/repo-size/subhamay-bhattacharyya-gha/tf-plan-action)](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action)&nbsp;[![Release Date](https://img.shields.io/github/release-date/subhamay-bhattacharyya-gha/tf-plan-action)](https://github.com/subhamay-bhattacharyya-gha/tf-plan-action/releases)
+
+<!-- Row 5: Custom Metrics -->
+[![Custom Endpoint](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/bsubhamay/4b78231973ba23bf79edc938aa3c2db5/raw/tf-plan-action.json)](https://gist.github.com/bsubhamay/4b78231973ba23bf79edc938aa3c2db5)
 
 A comprehensive GitHub composite action for running `terraform plan` with support for multiple backends (S3, HCP Terraform Cloud) and multi-cloud authentication (AWS, GCP, Azure, Snowflake, Databricks) using OIDC/Workload Identity Federation. Also supports platform mode for multi-cloud infrastructure projects.
 
